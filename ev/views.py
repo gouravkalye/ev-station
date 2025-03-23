@@ -15,29 +15,45 @@ users = [
         {"usr": "Charlie Brown", "email": "charlie.brown@example.com", "phone": "+1 321 654 987", "address": "222 Maple St, Chicago, USA"},
         {"nausrme": "David White", "email": "david.white@example.com", "phone": "+1 123 456 789", "address": "333 Birch St, Houston, USA"}
     ]
+ev_station = [
+    {
+        "station_name": "Solar-ev",
+        "address": "Power house, Ratnagiri",
+        "city": "Ratnagiri",
+        "state": "Maharashtra",
+        "available": "Yes"
+    },
+ {
+        "station_name": "Solar-ev",
+        "address": "Power house, Ratnagiri",
+        "city": "Ratnagiri",
+        "state": "Maharashtra",
+        "available": "Yes"
+},
+]
 
 @login_required(login_url='login')  # Redirect to login page if not authenticated
 def home(request):
     
     index = int(request.GET.get('index', 0))
-    index = max(0, min(index, len(users) - 1))  # Ensure index is within range
-    usr = users[index]
+    # index = max(0, min(index, len(users) - 1))  # Ensure index is within range
+    # usr = users[index]
 
-    context = {
-        "usr": usr,
-        "index": index,
-        "prev_index": max(index - 1, 0),
-        "next_index": min(index + 1, len(users) - 1),
-        "is_first": index == 0,
-        "is_last": index == len(users) - 1,
-    }
+    # context = {
+    #     "usr": usr,
+    #     "index": index,
+    #     "prev_index": max(index - 1, 0),
+    #     "next_index": min(index + 1, len(users) - 1),
+    #     "is_first": index == 0,
+    #     "is_last": index == len(users) - 1,
+    # }
 
     # Check if the request is AJAX or explicitly asks for JSON
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.GET.get('format') == 'json':
-        context = users[index]
-        return JsonResponse(context, content_type="application/json")
+        # context = ev_station[index]
+        return JsonResponse(ev_station[0], content_type="application/json")
 
-    return render(request, "ev/home.html", context)
+    return render(request, "ev/home.html", ev_station[0])
 
 
 # Create your views here.

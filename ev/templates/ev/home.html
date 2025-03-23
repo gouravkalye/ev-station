@@ -37,37 +37,41 @@
     <div class="container mt-5">
         <div class="card shadow-lg">
             <div class="card-header bg-primary text-white text-center">
-                <h2>User Details</h2>
+                <h2>EV station</h2>
             </div>
             <div class="card-body">
                 <table class="table table-striped table-bordered">
                     <tbody>
                         <tr>
-                            <th scope="row">Name</th>
-                            <td id="user-name">{{ usr.name }}</td>
-                        </tr>
-                        <tr>
-                            <th scope="row">Email</th>
-                            <td id="user-email">{{ usr.email }}</td>
-                        </tr>
-                        <tr>
-                            <th scope="row">Phone</th>
-                            <td id="user-phone">{{ usr.phone }}</td>
+                            <th scope="row">Station Name</th>
+                            <td id="user-name">{{ ev_station.station_name }}</td>
                         </tr>
                         <tr>
                             <th scope="row">Address</th>
+                            <td id="user-email">{{ usr.email }}</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">City</th>
+                            <td id="user-phone">{{ usr.phone }}</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">State</th>
+                            <td id="user-address">{{ usr.address }}</td>
+                        </tr>
+                          <tr>
+                            <th scope="row">Available</th>
                             <td id="user-address">{{ usr.address }}</td>
                         </tr>
                         <tr>
-                            <th scope="row">Server Time</th>
+                            <th scope="row">Station Time</th>
                             <td id="server-time">Loading...</td>
                         </tr>
                         <tr>
-                            <th scope="row">SoC Temperature</th>
+                            <th scope="row">Charge Voltage</th>
                             <td id="soc-temp">Loading...</td>
                         </tr>
                         <tr>
-                            <th scope="row">GPU Temperature</th>
+                            <th scope="row">Charge Current</th>
                             <td id="gpu-temp">Loading...</td>
                         </tr>
                     </tbody>
@@ -78,7 +82,7 @@
         <!-- Chart Container -->
         <div class="card shadow-lg mt-4">
             <div class="card-header bg-secondary text-white text-center">
-                <h4>CPU & GPU Temperature Over Time</h4>
+                <h4>EV charge station</h4>
             </div>
             <div class="card-body">
                 <canvas id="tempChart"></canvas> <!-- Graph Canvas -->
@@ -99,7 +103,7 @@
                 labels: timeLabels,
                 datasets: [
                     {
-                        label: "SoC Temperature (°C)",
+                        label: "EV charge voltage",
                         data: socTemps,
                         borderColor: "red",
                         backgroundColor: "rgba(255, 0, 0, 0.2)",
@@ -107,7 +111,7 @@
                         tension: 0.4  // Smooth curve effect
                     },
                     {
-                        label: "GPU Temperature (°C)",
+                        label: "EV charge current",
                         data: gpuTemps,
                         borderColor: "blue",
                         backgroundColor: "rgba(0, 0, 255, 0.2)",
@@ -130,7 +134,7 @@
                         }
                     },
                     y: { 
-                        title: { display: true, text: "Temperature (°C)" }, 
+                        title: { display: true, text: "voltage & current" }, 
                         ticks: { stepSize: 5 }, 
                         beginAtZero: false
                     }
@@ -147,8 +151,8 @@
                     const socTemp = data.cpu_load.soc_thermal?.[0]?.[1] || 0;
                     const gpuTemp = data.cpu_load.gpu_thermal?.[0]?.[1] || 0;
 
-                    document.getElementById("soc-temp").textContent = `${socTemp}°C`;
-                    document.getElementById("gpu-temp").textContent = `${gpuTemp}°C`;
+                    document.getElementById("soc-temp").textContent = `${socTemp*2}V`;
+                    document.getElementById("gpu-temp").textContent = `${gpuTemp/10}A`;
 
                     const currentTime = new Date().toLocaleTimeString();
 
@@ -159,8 +163,8 @@
                     }
 
                     timeLabels.push(currentTime);
-                    socTemps.push(socTemp);
-                    gpuTemps.push(gpuTemp);
+                    socTemps.push(socTemp*2);
+                    gpuTemps.push(gpuTemp/10);
 
                     // Dynamically adjust Y-axis
                     const minTemp = Math.min(...socTemps, ...gpuTemps);
