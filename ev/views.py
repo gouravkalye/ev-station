@@ -9,59 +9,18 @@ from django.contrib.auth.decorators import login_required
 from .models import EvStation
 import psutil  # ✅ Import psutil to get CPU load
 
-users = [
-        {"usr": "Gourav", "email": "john.doe@example.com", "phone": "+1 234 567 890", "address": "1234 Main St, Springfield, USA"},
-        {"usr": "vighnesh", "email": "alice.johnson@example.com", "phone": "+1 987 654 321", "address": "5678 Elm St, New York, USA"},
-        {"usr": "Bob Smith", "email": "bob.smith@example.com", "phone": "+1 543 210 987", "address": "9101 Oak St, Los Angeles, USA"},
-        {"usr": "Charlie Brown", "email": "charlie.brown@example.com", "phone": "+1 321 654 987", "address": "222 Maple St, Chicago, USA"},
-        {"nausrme": "David White", "email": "david.white@example.com", "phone": "+1 123 456 789", "address": "333 Birch St, Houston, USA"}
-    ]
-ev_station = [
-    {
-        "station_name": "Solar-ev",
-        "address": "Power house, Ratnagiri",
-        "city": "Ratnagiri",
-        "state": "Maharashtra",
-        "available": "Yes"
-    },
- {
-        "station_name": "Solar-ev",
-        "address": "Power house, Ratnagiri",
-        "city": "Ratnagiri",
-        "state": "Maharashtra",
-        "available": "Yes"
-},
-]
 
 @login_required(login_url='login')  # Redirect to login page if not authenticated
 def home(request):
-    
-    index = int(request.GET.get('index', 0))
-    # index = max(0, min(index, len(users) - 1))  # Ensure index is within range
-    # usr = users[index]
-
-    # context = {
-    #     "usr": usr,
-    #     "index": index,
-    #     "prev_index": max(index - 1, 0),
-    #     "next_index": min(index + 1, len(users) - 1),
-    #     "is_first": index == 0,
-    #     "is_last": index == len(users) - 1,
-    # }
-
     # Check if the request is AJAX or explicitly asks for JSON
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.GET.get('format') == 'json':
-        # context = ev_station[index]
-        return JsonResponse(ev_station[0], content_type="application/json")
-    ev_stations = EvStation.objects.all()  # Fetch all stations from DB
-    # print(ev_stations)
-    context = {
-        "ev_station": ev_stations  # Pass the queryset to the template
-    }
-    # print(context)
-    return render(request, "ev/home.html", context) 
-    # return render(request, "ev/home.html", ev_station[0])
+        ev_stations = EvStation.objects.all().values("name", "address", "city", "state", "zip_code")
+        return JsonResponse(list(ev_stations), safe=False)  # Convert QuerySet to list
 
+    # For normal page rendering
+    ev_stations = list(EvStation.objects.all())
+    station = ev_stations[0]
+    return render(request, "ev/home.html", {"stations": station})
 
 # Create your views here.
 
@@ -92,7 +51,7 @@ def register(request):
                 user = User.objects.create_user(username=username, email=email, password=password)
                 user.save()
                 messages.success(request, "Account created successfully! Please log in.")
-                return redirect('ev/login')
+                return redirect('login')
         else:
             messages.error(request, "Passwords do not match")
 
