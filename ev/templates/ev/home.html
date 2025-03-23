@@ -44,7 +44,7 @@
                     <tbody>
                         <tr>
                             <th scope="row">Station Name</th>
-                            <td id="user-name">{{ ev_station.station_name }}</td>
+                            <td id="user-name">{{ ev_station.name}}</td>
                         </tr>
                         <tr>
                             <th scope="row">Address</th>
@@ -82,7 +82,7 @@
         <!-- Chart Container -->
         <div class="card shadow-lg mt-4">
             <div class="card-header bg-secondary text-white text-center">
-                <h4>EV charge station</h4>
+                <h4>Charging status</h4>
             </div>
             <div class="card-body">
                 <canvas id="tempChart"></canvas> <!-- Graph Canvas -->
@@ -151,8 +151,8 @@
                     const socTemp = data.cpu_load.soc_thermal?.[0]?.[1] || 0;
                     const gpuTemp = data.cpu_load.gpu_thermal?.[0]?.[1] || 0;
 
-                    document.getElementById("soc-temp").textContent = `${socTemp*2}V`;
-                    document.getElementById("gpu-temp").textContent = `${gpuTemp/10}A`;
+                    document.getElementById("soc-temp").textContent = `${(socTemp * 2).toFixed(1)}V`;
+                    document.getElementById("gpu-temp").textContent = `${(gpuTemp / 10).toFixed(1)}A`;
 
                     const currentTime = new Date().toLocaleTimeString();
 
@@ -163,8 +163,8 @@
                     }
 
                     timeLabels.push(currentTime);
-                    socTemps.push(socTemp*2);
-                    gpuTemps.push(gpuTemp/10);
+                    socTemps.push((socTemp*2).toFixed(2));
+                    gpuTemps.push(parseFloat((gpuTemp / 10).toFixed(2)));
 
                     // Dynamically adjust Y-axis
                     const minTemp = Math.min(...socTemps, ...gpuTemps);
