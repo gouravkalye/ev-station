@@ -10,3 +10,5 @@ services:
     volumes:
       - .:/app
       - ./db.sqlite3:/app/db.sqlite3  # Persist SQLite database outside the container
+    
+    restart: always
