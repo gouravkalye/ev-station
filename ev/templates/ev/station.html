@@ -56,7 +56,8 @@
 
     <!-- Available Stations -->
     <h3 class="mt-4">Available Charging Stations</h3>
-    <table class="table table-striped">
+<div style="max-height: 300px; overflow-y: auto;">    
+<table class="table table-striped">
         <thead class="table-dark">
             <tr>
                 <th>Name</th>
@@ -92,7 +93,7 @@
             {% endfor %}
         </tbody>
     </table>
-
+</div>
     <!-- Google Maps Iframe -->
     <h3 class="mt-4">Location</h3>
     <iframe 
