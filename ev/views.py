@@ -6,21 +6,57 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from .models import EvStation
+from .models import Station, UserProfile, ChargingSession, UserPreferences
 import random
+from django.views.decorators.http import require_POST
+from django.utils import timezone
+from decimal import Decimal
 
 
-@login_required(login_url='login')  # Redirect to login page if not authenticated
+@login_required
 def home(request):
     # Check if the request is AJAX or explicitly asks for JSON
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.GET.get('format') == 'json':
-        ev_stations = EvStation.objects.all().values("name", "address", "city", "state", "zip_code")
-        return JsonResponse(list(ev_stations), safe=False)  # Convert QuerySet to list
+        stations = Station.objects.all().values("name", "address", "city", "state", "zip_code")
+        return JsonResponse(list(stations), safe=False)
 
     # For normal page rendering
-    ev_stations = list(EvStation.objects.all())
-    station = ev_stations[0]
-    return render(request, "ev/home.html", {"stations": station})
+    stations = Station.objects.all()
+    context = {
+        'stations': stations,
+    }
+    return render(request, "ev/home.html", context)
+
+def station(request):
+    state = request.GET.get("state", "")
+    city = request.GET.get("city", "")
+
+    # Fetch all stations
+    stations = Station.objects.all()
+
+    # Apply filters if selected
+    if state:
+        stations = stations.filter(state__iexact=state)
+    if city:
+        stations = stations.filter(city__iexact=city)
+
+    # Get all distinct states
+    states = Station.objects.values_list("state", flat=True).distinct()
+
+    # Get distinct cities
+    if state:
+        cities = list(Station.objects.filter(state__iexact=state).values_list("city", flat=True).distinct())
+    else:
+        cities = []
+
+    context = {
+        "stations": stations,
+        "states": states,
+        "cities": cities,
+        "selected_state": state,
+        "selected_city": city,
+    }
+    return render(request, "ev/station.html", context)
 
 # Create your views here.
 
@@ -84,7 +120,7 @@ def ev_station_list(request):
     city = request.GET.get("city", "")
 
     # Fetch all EV stations
-    stations = EvStation.objects.all()
+    stations = Station.objects.all()
 
     # Apply filters if selected
     if state:
@@ -93,13 +129,13 @@ def ev_station_list(request):
         stations = stations.filter(city__iexact=city)
 
     # Get all distinct states
-    states = EvStation.objects.values_list("state", flat=True).distinct()
+    states = Station.objects.values_list("state", flat=True).distinct()
 
     # Get distinct cities
     if state:
-        cities = list(EvStation.objects.filter(state__iexact=state).values_list("city", flat=True).distinct())
+        cities = list(Station.objects.filter(state__iexact=state).values_list("city", flat=True).distinct())
     else:
-        cities = list(EvStation.objects.values_list("city", flat=True).distinct())
+        cities = list(Station.objects.values_list("city", flat=True).distinct())
 
     print(f"Selected state: {state}, Cities: {cities}")  # Debugging
 
@@ -115,26 +151,126 @@ def ev_station_list(request):
 def get_cities(request):
     state = request.GET.get("state", "")
     if state:
-        cities = list(EvStation.objects.filter(state__iexact=state).values_list("city", flat=True).distinct())
+        cities = list(Station.objects.filter(state__iexact=state).values_list("city", flat=True).distinct())
     else:
         cities = []
     
     return JsonResponse({"cities": cities})
 
-@login_required(login_url='login')
+@login_required
 def user_profile(request):
-    # Get user's charging sessions (you'll need to implement this model later)
-    charging_sessions = []  # Placeholder for now
+    # Get or create user profile and preferences
+    profile, created = UserProfile.objects.get_or_create(user=request.user)
+    preferences, created = UserPreferences.objects.get_or_create(user=request.user)
     
-    # Calculate statistics (placeholder values for now)
-    total_sessions = 25
-    total_energy = 250
-    total_spent = 125.50
+    # Get recent charging sessions
+    recent_sessions = ChargingSession.objects.filter(user=request.user).order_by('-start_time')[:5]
     
-    return render(request, 'ev/user.html', {
-        'user': request.user,
-        'charging_sessions': charging_sessions,
-        'total_sessions': total_sessions,
-        'total_energy': total_energy,
-        'total_spent': total_spent
-    })
+    context = {
+        'profile': profile,
+        'preferences': preferences,
+        'recent_sessions': recent_sessions,
+    }
+    return render(request, 'ev/user.html', context)
+
+@login_required
+@require_POST
+def update_profile(request):
+    profile = request.user.profile
+    profile.save()
+    messages.success(request, 'Profile updated successfully!')
+    return redirect('user_profile')
+
+@login_required
+@require_POST
+def update_preferences(request):
+    preferences = request.user.preferences
+    preferences.preferred_station_type = request.POST.get('preferred_station_type', 'BOTH')
+    preferences.low_balance_alert = Decimal(request.POST.get('low_balance_alert', 20.00))
+    preferences.save()
+    messages.success(request, 'Preferences updated successfully!')
+    return redirect('user_profile')
+
+@login_required
+@require_POST
+def recharge_account(request):
+    try:
+        amount = Decimal(request.POST.get('amount', 0))
+        if amount <= 0:
+            raise ValueError("Amount must be greater than 0")
+        
+        profile = request.user.profile
+        profile.account_balance += amount
+        profile.save()
+        
+        messages.success(request, f'Account recharged successfully with ${amount}!')
+    except (ValueError, TypeError) as e:
+        messages.error(request, str(e))
+    
+    return redirect('user_profile')
+
+@login_required
+def start_charging(request, station_id):
+    try:
+        station = Station.objects.get(id=station_id, is_available=True)
+        profile = request.user.profile
+        
+        # Check if user has sufficient balance
+        if profile.account_balance < Decimal('10.00'):
+            messages.error(request, 'Insufficient balance. Please recharge your account.')
+            return redirect('station')
+        
+        # Create new charging session
+        session = ChargingSession.objects.create(
+            user=request.user,
+            station=station,
+            start_time=timezone.now()
+        )
+        
+        # Update station availability
+        station.is_available = False
+        station.save()
+        
+        messages.success(request, f'Charging started at {station.name}')
+        return redirect('home')
+        
+    except Station.DoesNotExist:
+        messages.error(request, 'Station not available')
+        return redirect('station')
+
+@login_required
+def stop_charging(request, session_id):
+    try:
+        session = ChargingSession.objects.get(id=session_id, user=request.user, status='in_progress')
+        profile = request.user.profile
+        
+        # Calculate energy consumed and cost
+        duration = session.duration()
+        hours = duration.total_seconds() / 3600
+        energy_consumed = Decimal(str(hours * 7.2))  # Assuming 7.2kW charging rate
+        cost = energy_consumed * Decimal('0.15')  # Assuming $0.15 per kWh
+        
+        # Update session
+        session.end_time = timezone.now()
+        session.energy_consumed = energy_consumed
+        session.cost = cost
+        session.status = 'completed'
+        session.save()
+        
+        # Update station availability
+        session.station.is_available = True
+        session.station.save()
+        
+        # Update user profile
+        profile.account_balance -= cost
+        profile.total_sessions += 1
+        profile.total_energy_consumed += energy_consumed
+        profile.total_amount_spent += cost
+        profile.save()
+        
+        messages.success(request, f'Charging completed. Energy consumed: {energy_consumed:.2f} kWh, Cost: ${cost:.2f}')
+        return redirect('user_profile')
+        
+    except ChargingSession.DoesNotExist:
+        messages.error(request, 'Invalid charging session')
+        return redirect('user_profile')
