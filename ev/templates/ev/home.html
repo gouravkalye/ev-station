@@ -1,9 +1,12 @@
 {% extends 'ev/base.html' %}
+{% load static %}
 
 {% block title %}Home - EV Charger{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="{% static 'ev/css/styles.css' %}">
+<link rel="stylesheet" href="{% static 'ev/css/chart.css' %}">
 <style>
     .status-card {
         transition: transform 0.2s;
@@ -53,6 +56,19 @@
                     </h5>
                 </div>
                 <div class="card-body">
+                    <!-- Current Station Info -->
+                    <div class="current-station mb-4 p-3 bg-light rounded">
+                        <h6 class="text-muted mb-2">Currently Selected Station</h6>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 id="current-station-name" class="mb-1">No station selected</h5>
+                                <p id="current-station-location" class="text-muted mb-0 small">Select a station to begin charging</p>
+                            </div>
+                            <span id="current-station-status" class="badge bg-secondary">Inactive</span>
+                        </div>
+                    </div>
+
+                    <!-- All Stations List -->
                     <div class="table-responsive">
                         <table class="table table-hover">
                             <thead>
@@ -64,7 +80,9 @@
                             </thead>
                             <tbody>
                                 {% for station in stations %}
-                                <tr>
+                                <tr class="station-row" data-station-id="{{ station.id }}" 
+                                    data-station-name="{{ station.name }}"
+                                    data-station-location="{{ station.city }}, {{ station.state }}">
                                     <td>{{ station.name }}</td>
                                     <td>
                                         <span class="station-status {% if station.is_available %}available{% else %}unavailable{% endif %}">
@@ -175,6 +193,40 @@
     let isCharging = false;
     let voltage = 230;
     let current = 15;
+    let currentStation = null;
+
+    // Station selection handling
+    document.querySelectorAll('.station-row').forEach(row => {
+        row.addEventListener('click', function() {
+            // Update current station
+            currentStation = {
+                id: this.dataset.stationId,
+                name: this.dataset.stationName,
+                location: this.dataset.stationLocation,
+                isAvailable: this.querySelector('.station-status').classList.contains('available')
+            };
+
+            // Update display
+            document.getElementById('current-station-name').textContent = currentStation.name;
+            document.getElementById('current-station-location').textContent = currentStation.location;
+            
+            // Update status badge
+            const statusBadge = document.getElementById('current-station-status');
+            if (currentStation.isAvailable) {
+                statusBadge.className = 'badge bg-success';
+                statusBadge.textContent = 'Available';
+                document.getElementById('startCharging').disabled = false;
+            } else {
+                statusBadge.className = 'badge bg-danger';
+                statusBadge.textContent = 'In Use';
+                document.getElementById('startCharging').disabled = true;
+            }
+
+            // Highlight selected row
+            document.querySelectorAll('.station-row').forEach(r => r.classList.remove('table-primary'));
+            this.classList.add('table-primary');
+        });
+    });
 
     // Initialize chart
     const ctx = document.getElementById('chargingChart').getContext('2d');
@@ -241,7 +293,7 @@
     // Update station information
     function updateServerInfo() {
         // Generate random values within range
-        if (isCharging) {
+        if (isCharging && currentStation) {
             voltage = 230 + Math.random() * 20; // Random between 230-250
             current = 15 + Math.random(); // Random between 15-16
         } else {
@@ -275,15 +327,29 @@
 
     // Start/Stop charging buttons
     document.getElementById('startCharging').addEventListener('click', function() {
+        if (!currentStation) {
+            alert('Please select a station first');
+            return;
+        }
         isCharging = true;
         this.disabled = true;
         document.getElementById('stopCharging').disabled = false;
+        
+        // Update station status
+        const statusBadge = document.getElementById('current-station-status');
+        statusBadge.className = 'badge bg-warning';
+        statusBadge.textContent = 'Charging';
     });
 
     document.getElementById('stopCharging').addEventListener('click', function() {
         isCharging = false;
         this.disabled = true;
         document.getElementById('startCharging').disabled = false;
+        
+        // Update station status
+        const statusBadge = document.getElementById('current-station-status');
+        statusBadge.className = 'badge bg-success';
+        statusBadge.textContent = 'Available';
     });
 
     // Update every second
