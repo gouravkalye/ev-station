@@ -133,14 +133,15 @@
             }
         });
 
+
         function updateServerInfo() {
             fetch("/server-info/")
                 .then(response => response.json())
                 .then(data => {
                     document.getElementById("server-time").textContent = data.server_time;
 
-                    const socTemp = data.cpu_load.soc_thermal?.[0]?.[1] || 0;
-                    const gpuTemp = data.cpu_load.gpu_thermal?.[0]?.[1] || 0;
+                    const socTemp = data.voltage_info || 0;
+                    const gpuTemp = data.current_info || 0;
 
                     document.getElementById("soc-temp").textContent = `${(socTemp * 2).toFixed(1)}V`;
                     document.getElementById("gpu-temp").textContent = `${(gpuTemp / 10).toFixed(1)}A`;

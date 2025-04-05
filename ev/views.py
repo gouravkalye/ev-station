@@ -7,7 +7,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from .models import EvStation
-import psutil  # ✅ Import psutil to get CPU load
+import random
 
 
 @login_required(login_url='login')  # Redirect to login page if not authenticated
@@ -30,10 +30,15 @@ def get_server_time(request):
 
 def server_info(request):
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # ✅ Get formatted server time
-    cpu_load = psutil.sensors_temperatures()  # ✅ Get CPU usage over 1 second
-    
-    return JsonResponse({"server_time": now, "cpu_load": cpu_load})
-
+    # Generate random CPU temperature between 30-80     
+    voltage_info = random.uniform(110.0, 115.0)
+    current_info = random.uniform(30.0, 80.0)
+    return JsonResponse({
+        "server_time": now, 
+        "voltage_info": round(voltage_info, 1),
+        "current_info": round(current_info, 1),
+        # Round to 1 decimal place
+    })
 
 def register(request):
     if request.method == "POST":
