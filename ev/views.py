@@ -120,3 +120,21 @@ def get_cities(request):
         cities = []
     
     return JsonResponse({"cities": cities})
+
+@login_required(login_url='login')
+def user_profile(request):
+    # Get user's charging sessions (you'll need to implement this model later)
+    charging_sessions = []  # Placeholder for now
+    
+    # Calculate statistics (placeholder values for now)
+    total_sessions = 25
+    total_energy = 250
+    total_spent = 125.50
+    
+    return render(request, 'ev/user.html', {
+        'user': request.user,
+        'charging_sessions': charging_sessions,
+        'total_sessions': total_sessions,
+        'total_energy': total_energy,
+        'total_spent': total_spent
+    })
