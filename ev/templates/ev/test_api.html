@@ -1,0 +1,118 @@
+{% extends 'ev/base.html' %}
+{% load static %}
+
+{% block title %}Test Charging Status API{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Test Charging Status API</h4>
+                </div>
+                <div class="card-body">
+                    <form id="apiTestForm">
+                        <div class="mb-3">
+                            <label for="stationSelect" class="form-label">Select Station</label>
+                            <select class="form-select" id="stationSelect" required>
+                                <option value="">Choose a station...</option>
+                                {% for station in stations %}
+                                <option value="{{ station.id }}" 
+                                        data-name="{{ station.name }}"
+                                        data-location="{{ station.address }}, {{ station.city }}, {{ station.state }}">
+                                    {{ station.name }} - {{ station.city }}, {{ station.state }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="stationId" class="form-label">Station ID</label>
+                            <input type="text" class="form-control" id="stationId" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="stationName" class="form-label">Station Name</label>
+                            <input type="text" class="form-control" id="stationName" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="stationLocation" class="form-label">Station Location</label>
+                            <input type="text" class="form-control" id="stationLocation" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="isCharging">
+                                <label class="form-check-label" for="isCharging">
+                                    Is Charging
+                                </label>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Test API</button>
+                    </form>
+
+                    <div class="mt-4">
+                        <h5>Response:</h5>
+                        <pre id="response" class="bg-light p-3 rounded" style="min-height: 100px;"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('stationSelect').addEventListener('change', function() {
+    const selectedOption = this.options[this.selectedIndex];
+    if (selectedOption.value) {
+        document.getElementById('stationId').value = selectedOption.value;
+        document.getElementById('stationName').value = selectedOption.dataset.name;
+        document.getElementById('stationLocation').value = selectedOption.dataset.location;
+    } else {
+        document.getElementById('stationId').value = '';
+        document.getElementById('stationName').value = '';
+        document.getElementById('stationLocation').value = '';
+    }
+});
+
+document.getElementById('apiTestForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const data = {
+        station_id: document.getElementById('stationId').value,
+        station_name: document.getElementById('stationName').value,
+        station_location: document.getElementById('stationLocation').value,
+        is_charging: document.getElementById('isCharging').checked
+    };
+    
+    fetch('http://localhost:8000/api/update_charging_status/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+    })
+    .catch(error => {
+        document.getElementById('response').textContent = 'Error: ' + error;
+    });
+});
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %} 

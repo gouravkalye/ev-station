@@ -11,21 +11,24 @@ import random
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 from decimal import Decimal
+from django.views.decorators.csrf import csrf_exempt
+import json
 
 
 @login_required
 def home(request):
-    # Check if the request is AJAX or explicitly asks for JSON
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.GET.get('format') == 'json':
-        stations = Station.objects.all().values("name", "address", "city", "state", "zip_code")
-        return JsonResponse(list(stations), safe=False)
+    # Get recently used stations (last 5)
+    recent_stations = Station.objects.filter(
+        chargingsession__user=request.user
+    ).order_by('-chargingsession__start_time').distinct()[:5]
 
-    # For normal page rendering
-    stations = Station.objects.all()
-    context = {
-        'stations': stations,
-    }
-    return render(request, "ev/home.html", context)
+    # If no recent stations, show 5 random stations
+    if not recent_stations:
+        recent_stations = Station.objects.order_by('?')[:5]
+
+    return render(request, 'ev/home.html', {
+        'stations': recent_stations,
+    })
 
 def station(request):
     state = request.GET.get("state", "")
@@ -159,16 +162,14 @@ def get_cities(request):
 
 @login_required
 def user_profile(request):
-    # Get or create user profile and preferences
+    # Get or create user profile
     profile, created = UserProfile.objects.get_or_create(user=request.user)
-    preferences, created = UserPreferences.objects.get_or_create(user=request.user)
     
     # Get recent charging sessions
     recent_sessions = ChargingSession.objects.filter(user=request.user).order_by('-start_time')[:5]
     
     context = {
         'profile': profile,
-        'preferences': preferences,
         'recent_sessions': recent_sessions,
     }
     return render(request, 'ev/user.html', context)
@@ -192,22 +193,29 @@ def update_preferences(request):
     return redirect('user_profile')
 
 @login_required
-@require_POST
 def recharge_account(request):
-    try:
-        amount = Decimal(request.POST.get('amount', 0))
-        if amount <= 0:
-            raise ValueError("Amount must be greater than 0")
-        
-        profile = request.user.profile
-        profile.account_balance += amount
-        profile.save()
-        
-        messages.success(request, f'Account recharged successfully with ${amount}!')
-    except (ValueError, TypeError) as e:
-        messages.error(request, str(e))
+    if request.method == 'POST':
+        try:
+            amount = Decimal(request.POST.get('amount', 0))
+            if amount <= 0:
+                messages.error(request, 'Please enter a valid amount greater than 0')
+                return redirect('recharge_account')
+            
+            # Get or create user profile
+            profile, created = UserProfile.objects.get_or_create(user=request.user)
+            
+            # Update balance
+            profile.account_balance += amount
+            profile.save()
+            
+            messages.success(request, f'Successfully recharged ₹{amount:.2f}')
+            return redirect('user_profile')
+            
+        except (ValueError, TypeError):
+            messages.error(request, 'Invalid amount entered')
+            return redirect('recharge_account')
     
-    return redirect('user_profile')
+    return render(request, 'ev/recharge_account.html')
 
 @login_required
 def start_charging(request, station_id):
@@ -274,3 +282,37 @@ def stop_charging(request, session_id):
     except ChargingSession.DoesNotExist:
         messages.error(request, 'Invalid charging session')
         return redirect('user_profile')
+
+@csrf_exempt
+@require_POST
+def update_charging_status(request):
+    try:
+        data = json.loads(request.body)
+        station_id = data.get('station_id')
+        station_name = data.get('station_name')
+        station_location = data.get('station_location')
+        is_charging = data.get('is_charging')
+        
+        # Here you would typically update your database
+        # For now, we'll just return a success response
+        response_data = {
+            'status': 'success',
+            'message': f'Charging status updated for {station_name}',
+            'data': {
+                'station_id': station_id,
+                'station_name': station_name,
+                'station_location': station_location,
+                'is_charging': is_charging
+            }
+        }
+        return JsonResponse(response_data)
+        
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=400)
+
+def test_api(request):
+    stations = Station.objects.all().order_by('name')
+    return render(request, 'ev/test_api.html', {'stations': stations})

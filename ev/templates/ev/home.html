@@ -57,40 +57,67 @@
                 </div>
                 <div class="card-body">
                     <!-- Current Station Info -->
-                    <div class="current-station mb-4 p-3 bg-light rounded">
-                        <h6 class="text-muted mb-2">Currently Selected Station</h6>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
+                    <div class="current-station">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">
+                                    <i class="bi bi-lightning-charge-fill me-1"></i>
+                                    Currently Selected Station
+                                </h6>
                                 <h5 id="current-station-name" class="mb-1">No station selected</h5>
-                                <p id="current-station-location" class="text-muted mb-0 small">Select a station to begin charging</p>
+                                <p id="current-station-location" class="mb-0">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Select a station to begin charging
+                                </p>
                             </div>
-                            <span id="current-station-status" class="badge bg-secondary">Inactive</span>
+                            <div>
+                                <span id="current-station-status" class="badge bg-secondary">
+                                    <i class="bi bi-dash-circle"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="text-muted small">
+                                <i class="bi bi-clock me-1"></i>
+                                Last updated: <span id="last-updated">--:--:--</span>
+                            </div>
+                            <button class="btn btn-sm btn-outline-primary" id="refresh-station">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </button>
                         </div>
                     </div>
 
                     <!-- All Stations List -->
-                    <div class="table-responsive">
-                        <table class="table table-hover">
+                    <div class="station-status-container">
+                        <table class="table table-hover station-status-table">
                             <thead>
                                 <tr>
-                                    <th>Station</th>
+                                    <th>Station Name</th>
+                                    <th>City</th>
                                     <th>Status</th>
-                                    <th>Location</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for station in stations %}
-                                <tr class="station-row" data-station-id="{{ station.id }}" 
+                                <tr class="station-row" data-station-id="{{ station.id }}"
                                     data-station-name="{{ station.name }}"
-                                    data-station-location="{{ station.city }}, {{ station.state }}">
-                                    <td>{{ station.name }}</td>
+                                    data-station-address="{{ station.address }}"
+                                    data-station-city="{{ station.city }}"
+                                    data-station-state="{{ station.state }}"
+                                    data-station-available="{{ station.is_available }}">
+                                    <td title="{{ station.name }}">
+                                        <i class="bi bi-lightning-charge-fill me-1"></i>
+                                        {{ station.name }}
+                                    </td>
+                                    <td title="{{ station.city }}">
+                                        <i class="bi bi-geo-alt me-1"></i>
+                                        {{ station.city }}
+                                    </td>
                                     <td>
-                                        <span class="station-status {% if station.is_available %}available{% else %}unavailable{% endif %}">
-                                            <i class="bi {% if station.is_available %}bi-check-circle-fill{% else %}bi-x-circle-fill{% endif %}"></i>
-                                            {% if station.is_available %}Available{% else %}In Use{% endif %}
+                                        <span class="badge {% if station.is_available %}bg-success{% else %}bg-danger{% endif %}">
+                                            <i class="bi {% if station.is_available %}bi-check-circle{% else %}bi-x-circle{% endif %}"></i>
                                         </span>
                                     </td>
-                                    <td>{{ station.city }}, {{ station.state }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -100,41 +127,71 @@
             </div>
         </div>
 
-        <!-- Middle Column - EV Station Info -->
+        <!-- Middle Column - Power Consumption & Balance -->
         <div class="col-md-4 mb-4">
             <div class="card shadow-sm h-100 server-info-card">
                 <div class="card-header bg-info text-white">
                     <h5 class="card-title mb-0">
                         <i class="bi bi-lightning-charge me-2"></i>
-                        EV Station Information
+                        Power Consumption
                     </h5>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table">
-                            <tbody>
-                                <tr>
-                                    <th>Station Time:</th>
-                                    <td id="station-time">Loading...</td>
-                                </tr>
-                                <tr>
-                                    <th>Charging Voltage:</th>
-                                    <td id="charging-voltage">Loading...</td>
-                                </tr>
-                                <tr>
-                                    <th>Charging Current:</th>
-                                    <td id="charging-current">Loading...</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <!-- Power Consumption -->
+                    <div class="power-consumption">
+                        <h6 class="mb-3">
+                            <i class="bi bi-lightning-charge me-1"></i>
+                            Current Session
+                        </h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th>Duration:</th>
+                                        <td id="session-duration">00:00:00</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Energy Used:</th>
+                                        <td id="energy-used">0.0 kWh</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Cost:</th>
+                                        <td id="session-cost">₹0.00</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                    <div class="mt-3">
-                        <button id="startCharging" class="btn btn-success w-100 mb-2">
-                            <i class="bi bi-play-fill me-2"></i>Start Charging
-                        </button>
-                        <button id="stopCharging" class="btn btn-danger w-100" disabled>
-                            <i class="bi bi-stop-fill me-2"></i>Stop Charging
-                        </button>
+
+                    <!-- Recent Usage Logs -->
+                    <div class="recent-usage mt-3">
+                        <h6 class="mb-3">
+                            <i class="bi bi-clock-history me-1"></i>
+                            Recent Usage
+                        </h6>
+                        <div class="usage-logs">
+                            <div class="log-entry">
+                                <div class="log-time">Today, 10:30 AM</div>
+                                <div class="log-details">
+                                    <span class="log-energy">2.5 kWh</span>
+                                    <span class="log-cost">₹25.00</span>
+                                </div>
+                            </div>
+                            <div class="log-entry">
+                                <div class="log-time">Yesterday, 3:45 PM</div>
+                                <div class="log-details">
+                                    <span class="log-energy">5.0 kWh</span>
+                                    <span class="log-cost">₹50.00</span>
+                                </div>
+                            </div>
+                            <div class="log-entry">
+                                <div class="log-time">Yesterday, 9:15 AM</div>
+                                <div class="log-details">
+                                    <span class="log-energy">3.2 kWh</span>
+                                    <span class="log-cost">₹32.00</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -150,16 +207,38 @@
                     </h5>
                 </div>
                 <div class="card-body">
+                    <!-- Emergency Charge Control -->
+                    <div class="emergency-control mb-4 text-center">
+                        <button id="chargeToggle" class="btn btn-emergency btn-success" disabled>
+                            <i class="bi bi-play-fill"></i>
+                            <span class="btn-label">Start Charging</span>
+                        </button>
+                        <p class="text-muted small mt-2 mb-0">Select a station to begin charging</p>
+                    </div>
+
                     <div class="d-grid gap-2">
-                        <a href="{% url 'station' %}" class="btn btn-primary">
-                            <i class="bi bi-search me-2"></i>Find Charging Station
-                        </a>
                         <a href="{% url 'user_profile' %}" class="btn btn-outline-primary">
                             <i class="bi bi-person me-2"></i>View Profile
                         </a>
                         <a href="{% url 'recharge_account' %}" class="btn btn-outline-success">
                             <i class="bi bi-credit-card me-2"></i>Recharge Account
                         </a>
+                    </div>
+
+                    <!-- Account Balance -->
+                    <div class="balance-card mt-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0">
+                                <i class="bi bi-wallet2 me-1"></i>
+                                Account Balance
+                            </h6>
+                            <span class="badge bg-primary">₹<span id="account-balance">1000.00</span></span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: 75%;" 
+                                 aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        <small class="text-muted mt-1 d-block">Last recharge: 2 days ago</small>
                     </div>
                 </div>
             </div>
@@ -198,34 +277,49 @@
     // Station selection handling
     document.querySelectorAll('.station-row').forEach(row => {
         row.addEventListener('click', function() {
+            const isAvailable = this.dataset.stationAvailable === 'True';
+            
             // Update current station
             currentStation = {
                 id: this.dataset.stationId,
                 name: this.dataset.stationName,
-                location: this.dataset.stationLocation,
-                isAvailable: this.querySelector('.station-status').classList.contains('available')
+                address: this.dataset.stationAddress,
+                city: this.dataset.stationCity,
+                state: this.dataset.stationState,
+                isAvailable: isAvailable
             };
 
             // Update display
             document.getElementById('current-station-name').textContent = currentStation.name;
-            document.getElementById('current-station-location').textContent = currentStation.location;
+            document.getElementById('current-station-location').textContent = 
+                `${currentStation.address}, ${currentStation.city}, ${currentStation.state}`;
             
             // Update status badge
             const statusBadge = document.getElementById('current-station-status');
             if (currentStation.isAvailable) {
                 statusBadge.className = 'badge bg-success';
-                statusBadge.textContent = 'Available';
-                document.getElementById('startCharging').disabled = false;
+                statusBadge.innerHTML = '<i class="bi bi-check-circle"></i>';
+                document.getElementById('chargeToggle').disabled = false;
             } else {
                 statusBadge.className = 'badge bg-danger';
-                statusBadge.textContent = 'In Use';
-                document.getElementById('startCharging').disabled = true;
+                statusBadge.innerHTML = '<i class="bi bi-x-circle"></i>';
+                document.getElementById('chargeToggle').disabled = true;
             }
+
+            // Update last updated time
+            document.getElementById('last-updated').textContent = new Date().toLocaleTimeString();
 
             // Highlight selected row
             document.querySelectorAll('.station-row').forEach(r => r.classList.remove('table-primary'));
             this.classList.add('table-primary');
         });
+    });
+
+    // Refresh station button
+    document.getElementById('refresh-station').addEventListener('click', function() {
+        if (currentStation) {
+            document.getElementById('last-updated').textContent = new Date().toLocaleTimeString();
+        }
     });
 
     // Initialize chart
@@ -296,9 +390,18 @@
         if (isCharging && currentStation) {
             voltage = 230 + Math.random() * 20; // Random between 230-250
             current = 15 + Math.random(); // Random between 15-16
-        } else {
-            voltage = 0;
-            current = 0;
+            
+            // Update current station values
+            document.querySelector(`#charge-voltage-${currentStation.id} .voltage-value`).textContent = voltage.toFixed(1);
+            document.querySelector(`#charge-current-${currentStation.id} .current-value`).textContent = current.toFixed(1);
+            
+            // Update last used time for current station
+            document.querySelector(`[data-station-id="${currentStation.id}"] .time-value`).textContent = 
+                new Date().toLocaleTimeString();
+        } else if (currentStation) {
+            // Reset values for current station
+            document.querySelector(`#charge-voltage-${currentStation.id} .voltage-value`).textContent = '0';
+            document.querySelector(`#charge-current-${currentStation.id} .current-value`).textContent = '0';
         }
 
         // Update display
@@ -325,32 +428,95 @@
         chart.update('none');
     }
 
-    // Start/Stop charging buttons
-    document.getElementById('startCharging').addEventListener('click', function() {
-        if (!currentStation) {
-            alert('Please select a station first');
-            return;
+    // Update the toggleCharging function
+    function toggleCharging() {
+        const chargeToggle = document.getElementById('chargeToggle');
+        const isCharging = chargeToggle.classList.contains('btn-warning');
+        
+        if (isCharging) {
+            // Stop charging
+            chargeToggle.classList.remove('btn-warning');
+            chargeToggle.classList.add('btn-success');
+            chargeToggle.innerHTML = '<i class="bi bi-play-fill"></i><span class="btn-label">Start Charging</span>';
+            
+            const statusBadge = document.getElementById('current-station-status');
+            statusBadge.className = 'badge bg-success';
+            statusBadge.innerHTML = '<i class="bi bi-check-circle"></i>';
+            
+            // Update station row status
+            const stationRow = document.querySelector(`[data-station-id="${currentStation.id}"]`);
+            const statusCell = stationRow.querySelector('.badge');
+            statusCell.className = 'badge bg-success';
+            statusCell.innerHTML = '<i class="bi bi-check-circle"></i>';
+            
+            // Send status update to server
+            sendChargingStatus(false);
+        } else {
+            // Start charging
+            chargeToggle.classList.remove('btn-success');
+            chargeToggle.classList.add('btn-warning');
+            chargeToggle.innerHTML = '<i class="bi bi-stop-fill"></i><span class="btn-label">Stop Charging</span>';
+            
+            const statusBadge = document.getElementById('current-station-status');
+            statusBadge.className = 'badge bg-warning';
+            statusBadge.innerHTML = '<i class="bi bi-lightning-charge"></i>';
+            
+            // Update station row status
+            const stationRow = document.querySelector(`[data-station-id="${currentStation.id}"]`);
+            const statusCell = stationRow.querySelector('.badge');
+            statusCell.className = 'badge bg-warning';
+            statusCell.innerHTML = '<i class="bi bi-lightning-charge"></i>';
+            
+            // Send status update to server
+            sendChargingStatus(true);
         }
-        isCharging = true;
-        this.disabled = true;
-        document.getElementById('stopCharging').disabled = false;
-        
-        // Update station status
-        const statusBadge = document.getElementById('current-station-status');
-        statusBadge.className = 'badge bg-warning';
-        statusBadge.textContent = 'Charging';
-    });
+    }
 
-    document.getElementById('stopCharging').addEventListener('click', function() {
-        isCharging = false;
-        this.disabled = true;
-        document.getElementById('startCharging').disabled = false;
+    // Add new function to send charging status to server
+    function sendChargingStatus(isCharging) {
+        if (!currentStation) return;
         
-        // Update station status
-        const statusBadge = document.getElementById('current-station-status');
-        statusBadge.className = 'badge bg-success';
-        statusBadge.textContent = 'Available';
-    });
+        const data = {
+            station_id: currentStation.id,
+            station_name: currentStation.name,
+            station_location: `${currentStation.address}, ${currentStation.city}, ${currentStation.state}`,
+            is_charging: isCharging
+        };
+        
+        fetch('/api/update_charging_status/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'error') {
+                console.error('Error updating charging status:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+
+    // Helper function to get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
 
     // Update every second
     setInterval(updateServerInfo, 1000);

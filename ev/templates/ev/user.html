@@ -1,120 +1,170 @@
 {% extends 'ev/base.html' %}
+{% load static %}
+{% load custom_filters %}
 
 {% block title %}User Profile - EV Charger{% endblock %}
 
 {% block content %}
-<div class="row">
-    <!-- Profile Card -->
-    <div class="col-lg-4 mb-4">
-        <div class="card shadow">
-            <div class="card-body text-center">
-                <img src="https://via.placeholder.com/150" class="rounded-circle mb-3" alt="Profile Picture">
-                <h3 class="card-title">{{ user.username }}</h3>
-                <p class="text-muted">{{ user.email }}</p>
-                <div class="d-grid gap-2">
-                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editProfileModal">
-                        Edit Profile
-                    </button>
-                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#rechargeModal">
-                        Recharge Account
-                    </button>
+<div class="container mt-5">
+    <div class="row">
+        <!-- Profile and Balance Section -->
+        <div class="col-lg-4 mb-4">
+            <!-- Profile Card -->
+            <div class="card shadow">
+                <div class="card-body text-center">
+                    <img src="https://via.placeholder.com/150" class="rounded-circle mb-3" alt="Profile Picture">
+                    <h3 class="card-title">{{ user.username }}</h3>
+                    <p class="text-muted">{{ user.email }}</p>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+                            <i class="bi bi-pencil-square me-2"></i>Edit Profile
+                        </button>
+                        <a href="{% url 'recharge_account' %}" class="btn btn-success">
+                            <i class="bi bi-plus-circle me-2"></i>Recharge Account
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account Balance Card -->
+            <div class="card shadow mt-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-wallet2 me-2"></i>
+                        Account Balance
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <h2 class="text-success mb-3">₹{{ profile.account_balance|default:0|floatformat:2 }}</h2>
+                    <div class="progress" style="height: 8px;">
+                        {% with percentage=profile.account_balance|default:0|calculate_percentage %}
+                        <div class="progress-bar bg-success" role="progressbar" 
+                             style="width: {{ percentage|floatformat:0 }}%;" 
+                             aria-valuenow="{{ percentage|floatformat:0 }}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100"></div>
+                        {% endwith %}
+                    </div>
+                    <small class="text-muted mt-2 d-block">
+                        Last recharge: {{ profile.updated_at|date:"M d, Y H:i"|default:"Never" }}
+                    </small>
+                </div>
+            </div>
+
+            <!-- User Preferences Card -->
+            <div class="card shadow mt-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-gear me-2"></i>
+                        Preferences
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'update_preferences' %}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Preferred Station Type</label>
+                            <select name="preferred_station_type" class="form-select">
+                                <option value="AC" {% if user.preferences.preferred_station_type == 'AC' %}selected{% endif %}>AC Charger</option>
+                                <option value="DC" {% if user.preferences.preferred_station_type == 'DC' %}selected{% endif %}>DC Fast Charger</option>
+                                <option value="BOTH" {% if user.preferences.preferred_station_type == 'BOTH' %}selected{% endif %}>Both</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Low Balance Alert (₹)</label>
+                            <input type="number" name="low_balance_alert" class="form-control" 
+                                   value="{{ user.preferences.low_balance_alert|default:20.00|floatformat:2 }}" 
+                                   step="0.01" min="0">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Update Preferences</button>
+                    </form>
                 </div>
             </div>
         </div>
 
-        <!-- Account Balance Card -->
-        <div class="card shadow mt-4">
-            <div class="card-body">
-                <h5 class="card-title">Account Balance</h5>
-                <h2 class="text-success">${{ user.balance|default:"0.00" }}</h2>
-                <div class="progress">
-                    <div class="progress-bar bg-success" role="progressbar" style="width: 70%"></div>
+        <!-- Stats and Activity Section -->
+        <div class="col-lg-8">
+            <!-- Charging Statistics -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-graph-up me-2"></i>
+                        EV Charging Statistics
+                    </h4>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- User Stats and Recent Activity -->
-    <div class="col-lg-8">
-        <!-- Charging Statistics -->
-        <div class="card shadow mb-4">
-            <div class="card-header bg-primary text-white">
-                <h4 class="mb-0">EV Charging Statistics</h4>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-sm-4 mb-3">
-                        <div class="card">
-                            <div class="card-body text-center">
-                                <h5 class="card-title">Total Sessions</h5>
-                                <p class="display-6">{{ total_sessions|default:"25" }}</p>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-4 mb-3">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">Total Sessions</h5>
+                                    <p class="display-6">{{ profile.total_sessions|default:0 }}</p>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="col-sm-4 mb-3">
-                        <div class="card">
-                            <div class="card-body text-center">
-                                <h5 class="card-title">Total Energy</h5>
-                                <p class="display-6">{{ total_energy|default:"250" }} kWh</p>
+                        <div class="col-sm-4 mb-3">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">Total Energy</h5>
+                                    <p class="display-6">{{ profile.total_energy_consumed|default:0|floatformat:2 }} kWh</p>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="col-sm-4 mb-3">
-                        <div class="card">
-                            <div class="card-body text-center">
-                                <h5 class="card-title">Total Spent</h5>
-                                <p class="display-6">${{ total_spent|default:"125.50" }}</p>
+                        <div class="col-sm-4 mb-3">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">Total Spent</h5>
+                                    <p class="display-6">₹{{ profile.total_amount_spent|default:0|floatformat:2 }}</p>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Recent Charging Sessions -->
-        <div class="card shadow">
-            <div class="card-header bg-info text-white">
-                <h4 class="mb-0">Recent Charging Sessions</h4>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Station</th>
-                                <th>Duration</th>
-                                <th>Energy</th>
-                                <th>Cost</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for session in charging_sessions|default:"-" %}
-                            <tr>
-                                <td>{{ session.date }}</td>
-                                <td>{{ session.station }}</td>
-                                <td>{{ session.duration }}</td>
-                                <td>{{ session.energy }} kWh</td>
-                                <td>${{ session.cost }}</td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td>2024-03-15</td>
-                                <td>Station A</td>
-                                <td>1h 30m</td>
-                                <td>35 kWh</td>
-                                <td>$17.50</td>
-                            </tr>
-                            <tr>
-                                <td>2024-03-13</td>
-                                <td>Station B</td>
-                                <td>45m</td>
-                                <td>20 kWh</td>
-                                <td>$10.00</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+            <!-- Recent Charging Sessions -->
+            <div class="card shadow">
+                <div class="card-header bg-secondary text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-clock-history me-2"></i>
+                        Recent Charging Sessions
+                    </h4>
+                </div>
+                <div class="card-body">
+                    {% if recent_sessions %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Station</th>
+                                    <th>Start Time</th>
+                                    <th>Duration</th>
+                                    <th>Energy</th>
+                                    <th>Cost</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for session in recent_sessions %}
+                                <tr>
+                                    <td>{{ session.station.name }}</td>
+                                    <td>{{ session.start_time|date:"M d, Y H:i" }}</td>
+                                    <td>{{ session.duration }}</td>
+                                    <td>{{ session.energy_consumed|default:0|floatformat:2 }} kWh</td>
+                                    <td>₹{{ session.cost|default:0|floatformat:2 }}</td>
+                                    <td>
+                                        <span class="badge {% if session.status == 'completed' %}bg-success{% elif session.status == 'in_progress' %}bg-warning{% else %}bg-danger{% endif %}">
+                                            {{ session.status|title }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-0">No recent charging sessions</p>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -130,56 +180,29 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <form>
+                <form method="post" action="{% url 'update_profile' %}">
+                    {% csrf_token %}
                     <div class="mb-3">
                         <label for="username" class="form-label">Username</label>
-                        <input type="text" class="form-control" id="username" value="{{ user.username }}">
+                        <input type="text" class="form-control" id="username" value="{{ user.username }}" readonly>
                     </div>
                     <div class="mb-3">
                         <label for="email" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="email" value="{{ user.email }}">
+                        <input type="email" class="form-control" id="email" value="{{ user.email }}" readonly>
                     </div>
                     <div class="mb-3">
                         <label for="newPassword" class="form-label">New Password</label>
-                        <input type="password" class="form-control" id="newPassword">
+                        <input type="password" class="form-control" id="newPassword" name="new_password">
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirmPassword" class="form-label">Confirm New Password</label>
+                        <input type="password" class="form-control" id="confirmPassword" name="confirm_password">
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary">Save changes</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Recharge Account Modal -->
-<div class="modal fade" id="rechargeModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Recharge Account</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form>
-                    <div class="mb-3">
-                        <label for="amount" class="form-label">Amount ($)</label>
-                        <input type="number" class="form-control" id="amount" min="10" step="10">
-                    </div>
-                    <div class="mb-3">
-                        <label for="paymentMethod" class="form-label">Payment Method</label>
-                        <select class="form-select" id="paymentMethod">
-                            <option value="credit">Credit Card</option>
-                            <option value="debit">Debit Card</option>
-                            <option value="paypal">PayPal</option>
-                        </select>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-success">Recharge Now</button>
+                <button type="submit" class="btn btn-primary">Save changes</button>
             </div>
         </div>
     </div>
