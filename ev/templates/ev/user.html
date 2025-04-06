@@ -51,6 +51,36 @@
                 </div>
             </div>
 
+            <!-- Recent Station Status -->
+            <div class="card shadow mt-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-lightning-charge me-2"></i>
+                        Recent Station Status
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_station %}
+                    <div class="text-center">
+                        <h4>{{ recent_station.name }}</h4>
+                        <p class="text-muted">{{ recent_station.address }}</p>
+                        <div class="mb-3">
+                            <span class="badge {% if recent_station.is_available %}bg-success{% else %}bg-danger{% endif %}">
+                                {% if recent_station.is_available %}Available{% else %}In Use{% endif %}
+                            </span>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'test_api' %}" class="btn btn-outline-primary">
+                                <i class="bi bi-gear me-2"></i>Control Station
+                            </a>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center mb-0">No recent station used</p>
+                    {% endif %}
+                </div>
+            </div>
+
             <!-- User Preferences Card -->
             <div class="card shadow mt-4">
                 <div class="card-header bg-info text-white">

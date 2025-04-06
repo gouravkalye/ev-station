@@ -168,9 +168,15 @@ def user_profile(request):
     # Get recent charging sessions
     recent_sessions = ChargingSession.objects.filter(user=request.user).order_by('-start_time')[:5]
     
+    # Get the most recent station used
+    recent_station = None
+    if recent_sessions.exists():
+        recent_station = recent_sessions.first().station
+    
     context = {
         'profile': profile,
         'recent_sessions': recent_sessions,
+        'recent_station': recent_station,
     }
     return render(request, 'ev/user.html', context)
 
