@@ -15,7 +15,7 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 
 
-@login_required
+@login_required(login_url='/login/')
 def home(request):
     # Get recently used stations (last 5)
     recent_stations = Station.objects.filter(
