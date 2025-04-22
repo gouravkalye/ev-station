@@ -13,6 +13,9 @@ from django.utils import timezone
 from decimal import Decimal
 from django.views.decorators.csrf import csrf_exempt
 import json
+from celery import shared_task
+from django.utils import timezone
+from decimal import Decimal
 
 
 @login_required(login_url='/login/')
@@ -322,3 +325,69 @@ def update_charging_status(request):
 def test_api(request):
     stations = Station.objects.all().order_by('name')
     return render(request, 'ev/test_api.html', {'stations': stations})
+
+
+@login_required
+def start_charging(request, station_id):
+    try:
+        station = Station.objects.get(id=station_id, is_available=True)
+        profile = request.user.profile
+        
+        # Check if user has sufficient balance
+        if profile.account_balance < Decimal('10.00'):
+            messages.error(request, 'Insufficient balance. Please recharge your account.')
+            return redirect('station')
+        
+        # Create new charging session
+        session = ChargingSession.objects.create(
+            user=request.user,
+            station=station,
+            start_time=timezone.now(),
+            status='in_progress'
+        )
+        
+        # Update station availability
+        station.is_available = False
+        station.save()
+        
+        # Start Celery task
+        handle_charging_session.delay(session.id)
+        
+        messages.success(request, f'Charging started at {station.name}')
+        return redirect('home')
+        
+    except Station.DoesNotExist:
+        messages.error(request, 'Station not available')
+        return redirect('station')
+    
+@login_required
+def stop_charging(request, session_id):
+    try:
+        session = ChargingSession.objects.get(id=session_id, user=request.user, status='in_progress')
+        stop_charging_session.delay(session.id)
+        messages.success(request, 'Charging session stopped successfully')
+        return redirect('user_profile')
+    except ChargingSession.DoesNotExist:
+        messages.error(request, 'Charging session not found')
+        return redirect('user_profile')
+    
+@csrf_exempt
+@require_POST
+def charging_api(request):
+    try:
+        data = json.loads(request.body)
+        action = data.get('action')
+        session_id = data.get('session_id')
+
+        if action == 'start':
+            station_id = data.get('station_id')
+            response_data = start_charging(request, station_id)
+            return JsonResponse(response_data)  # This must be a dict
+        elif action == 'stop':
+            stop_charging_session.delay(session_id)
+            return JsonResponse({'status': 'success', 'message': 'Charging stopped'})
+        else:
+            return JsonResponse({'status': 'error', 'message': 'Invalid action'}, status=400)
+
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
