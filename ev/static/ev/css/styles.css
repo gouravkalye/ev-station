@@ -1,0 +1,574 @@
+/* Common Styles */
+.status-card {
+    transition: transform 0.2s;
+}
+
+.status-card:hover {
+    transform: translateY(-5px);
+}
+
+.chart-container {
+    position: relative;
+    height: 300px;
+    margin-bottom: 2rem;
+}
+
+/* Station Status Styles */
+.station-status {
+    font-size: 0.9rem;
+}
+
+.station-status.available {
+    color: #28a745;
+}
+
+.station-status.unavailable {
+    color: #dc3545;
+}
+
+/* Card Styles */
+.server-info-card {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.current-station {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid #dee2e6;
+    transition: all 0.3s ease;
+}
+
+.current-station:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.current-station h6 {
+    color: #6c757d;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.5rem;
+}
+
+.current-station h5 {
+    color: #212529;
+    font-size: 1.1rem;
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+}
+
+.current-station p {
+    color: #6c757d;
+    font-size: 0.85rem;
+    margin-bottom: 0;
+}
+
+.current-station .badge {
+    font-size: 0.75rem;
+    padding: 0.5em 0.8em;
+    border-radius: 50px;
+}
+
+.current-station .badge.bg-secondary {
+    background-color: #6c757d !important;
+}
+
+.current-station .badge.bg-success {
+    background-color: #28a745 !important;
+}
+
+.current-station .badge.bg-danger {
+    background-color: #dc3545 !important;
+}
+
+.current-station .badge.bg-warning {
+    background-color: #ffc107 !important;
+    color: #212529;
+}
+
+/* Table Styles */
+.table-hover tbody tr:hover {
+    background-color: rgba(13, 110, 253, 0.05);
+}
+
+/* Button Styles */
+.btn {
+    transition: all 0.2s;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+/* Badge Styles */
+.badge {
+    font-size: 0.9rem;
+    padding: 0.5em 0.8em;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .chart-container {
+        height: 250px;
+    }
+    
+    .station-status-container {
+        max-height: 250px;
+    }
+    
+    .station-status-table th,
+    .station-status-table td {
+        font-size: 0.8rem;
+        padding: 8px 4px;
+    }
+    
+    .station-status-table .badge {
+        min-width: 80px;
+        padding: 4px 8px;
+    }
+    
+    .station-status-table i {
+        font-size: 0.9rem;
+    }
+}
+
+/* Station Status Table Styles */
+.station-status-container {
+    max-height: 300px;
+    overflow-y: auto;
+    position: relative;
+    margin: 0;
+    padding: 0;
+}
+
+.station-status-table {
+    width: 100%;
+    margin-bottom: 0;
+    table-layout: fixed;
+}
+
+.station-status-table th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    padding: 12px 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.station-status-table td {
+    padding: 12px 8px;
+    font-size: 0.9rem;
+    vertical-align: middle;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.station-status-table th:nth-child(1),
+.station-status-table td:nth-child(1) {
+    width: 40%;
+    text-align: left;
+}
+
+.station-status-table th:nth-child(2),
+.station-status-table td:nth-child(2) {
+    width: 35%;
+    text-align: left;
+}
+
+.station-status-table th:nth-child(3),
+.station-status-table td:nth-child(3) {
+    width: 25%;
+    text-align: center;
+}
+
+.station-status-table .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 100px;
+    padding: 6px 10px;
+}
+
+.station-status-table i {
+    font-size: 1rem;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+.station-value {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 0.9rem;
+    color: #495057;
+}
+
+.station-value i {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.station-value .voltage-value,
+.station-value .current-value,
+.station-value .time-value {
+    margin-left: 4px;
+}
+
+.station-status-table tr:hover {
+    background-color: rgba(13, 110, 253, 0.05);
+}
+
+.station-status-table tr.table-primary {
+    background-color: rgba(13, 110, 253, 0.1);
+}
+
+/* Charge Control Styles */
+.charge-control {
+    padding: 1rem;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+.btn-charge {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-charge::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.3s ease, height 0.3s ease;
+}
+
+.btn-charge:hover::before {
+    width: 100%;
+    height: 100%;
+}
+
+.btn-charge:active {
+    transform: scale(0.95);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.btn-charge i {
+    position: relative;
+    z-index: 1;
+}
+
+.btn-charge:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-charge.btn-success {
+    background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+    border: none;
+}
+
+.btn-charge.btn-warning {
+    background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+    border: none;
+}
+
+/* Balance Card Styles */
+.balance-card {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 8px;
+    padding: 1rem;
+    border: 1px solid #dee2e6;
+    transition: all 0.3s ease;
+}
+
+.balance-card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.balance-card .badge {
+    font-size: 1rem;
+    padding: 0.5em 0.8em;
+    border-radius: 50px;
+    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+}
+
+.balance-card .progress {
+    background-color: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.balance-card .progress-bar {
+    background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+    transition: width 0.3s ease;
+}
+
+/* Power Consumption Styles */
+.power-consumption {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 8px;
+    padding: 1rem;
+    border: 1px solid #dee2e6;
+}
+
+.power-consumption h6 {
+    color: #6c757d;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.power-consumption .table {
+    margin-bottom: 0;
+}
+
+.power-consumption .table th {
+    font-weight: 600;
+    color: #495057;
+    width: 40%;
+}
+
+.power-consumption .table td {
+    font-family: 'Roboto Mono', monospace;
+    color: #212529;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .balance-card {
+        padding: 0.8rem;
+    }
+    
+    .balance-card .badge {
+        font-size: 0.9rem;
+    }
+    
+    .power-consumption {
+        padding: 0.8rem;
+    }
+    
+    .power-consumption h6 {
+        font-size: 0.8rem;
+    }
+}
+
+/* Recent Usage Logs Styles */
+.recent-usage {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 8px;
+    padding: 1rem;
+    border: 1px solid #dee2e6;
+}
+
+.usage-logs {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.usage-logs::-webkit-scrollbar {
+    width: 4px;
+}
+
+.usage-logs::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 2px;
+}
+
+.usage-logs::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 2px;
+}
+
+.log-entry {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.log-entry:last-child {
+    border-bottom: none;
+}
+
+.log-time {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-bottom: 0.25rem;
+}
+
+.log-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.log-energy {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 0.9rem;
+    color: #212529;
+}
+
+.log-cost {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 0.9rem;
+    color: #28a745;
+    font-weight: 500;
+}
+
+/* Emergency Charge Control Styles */
+.emergency-control {
+    padding: 2rem;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 12px;
+    border: 1px solid #dee2e6;
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.btn-emergency {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 3.5rem;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    margin: 0 auto;
+    border: 4px solid #fff;
+}
+
+.btn-emergency::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255,255,255,0.3);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.3s ease, height 0.3s ease;
+}
+
+.btn-emergency:hover::before {
+    width: 100%;
+    height: 100%;
+}
+
+.btn-emergency:active {
+    transform: scale(0.95);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.btn-emergency i {
+    position: relative;
+    z-index: 1;
+    margin-bottom: 0.5rem;
+    transition: transform 0.3s ease;
+}
+
+.btn-emergency:hover i {
+    transform: scale(1.1);
+}
+
+.btn-emergency .btn-label {
+    font-size: 1.1rem;
+    font-weight: 600;
+    position: relative;
+    z-index: 1;
+    transition: transform 0.3s ease;
+}
+
+.btn-emergency:hover .btn-label {
+    transform: scale(1.05);
+}
+
+.btn-emergency:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-emergency.btn-success {
+    background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+    border: none;
+}
+
+.btn-emergency.btn-warning {
+    background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+    border: none;
+}
+
+.btn-emergency.btn-danger {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    border: none;
+}
+
+/* Quick Actions Button Styles */
+.card-body .btn {
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.card-body .btn i {
+    font-size: 1rem;
+    margin-right: 0.5rem;
+}
+
+.card-body .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .btn-emergency {
+        width: 140px;
+        height: 140px;
+        font-size: 3rem;
+    }
+    
+    .btn-emergency .btn-label {
+        font-size: 1rem;
+    }
+    
+    .card-body .btn {
+        padding: 0.6rem 0.8rem;
+        font-size: 0.85rem;
+    }
+    
+    .usage-logs {
+        max-height: 150px;
+    }
+} 

@@ -1,0 +1,140 @@
+{% extends 'ev/base.html' %}
+{% load static %}
+
+{% block title %}Test API - EV Charger{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-gear me-2"></i>
+                        Station Control Panel
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- Station Selection -->
+                    <div class="mb-4">
+                        <label for="stationSelect" class="form-label">Select Station</label>
+                        <select id="stationSelect" class="form-select">
+                            <option value="">Select a station</option>
+                            {% for station in stations %}
+                            <option value="{{ station.id }}" data-available="{{ station.is_available|lower }}">
+                                {{ station.name }} - {{ station.address }}
+                                {% if station.is_available %}
+                                (Available)
+                                {% else %}
+                                (In Use)
+                                {% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Charge Control -->
+                    <div class="charge-control mb-4 text-center">
+                        <button id="chargeToggle" class="btn btn-emergency btn-success" disabled>
+                            <i class="bi bi-play-fill"></i>
+                            <span class="btn-label">Start Charging</span>
+                        </button>
+                        <p class="text-muted small mt-2 mb-0">Select a station to begin charging</p>
+                    </div>
+
+                    <!-- Status Display -->
+                    <div class="status-display mb-4">
+                        <h5>Current Status</h5>
+                        <div class="alert alert-info" role="alert">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <span id="statusMessage">No station selected</span>
+                        </div>
+                    </div>
+
+                    <!-- API Response -->
+                    <div class="api-response">
+                        <h5>API Response</h5>
+                        <pre id="apiResponse" class="bg-light p-3 rounded">No response yet</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const stationSelect = document.getElementById('stationSelect');
+    const chargeToggle = document.getElementById('chargeToggle');
+    const statusMessage = document.getElementById('statusMessage');
+    const apiResponse = document.getElementById('apiResponse');
+    let isCharging = false;
+
+    stationSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        const isAvailable = selectedOption.dataset.available === 'true';
+        
+        if (this.value) {
+            chargeToggle.disabled = false;
+            statusMessage.textContent = isAvailable ? 'Station is available' : 'Station is in use';
+            chargeToggle.querySelector('.btn-label').textContent = isAvailable ? 'Start Charging' : 'Stop Charging';
+            chargeToggle.className = `btn btn-emergency ${isAvailable ? 'btn-success' : 'btn-danger'}`;
+        } else {
+            chargeToggle.disabled = true;
+            statusMessage.textContent = 'No station selected';
+        }
+    });
+
+    chargeToggle.addEventListener('click', function() {
+        const stationId = stationSelect.value;
+        if (!stationId) return;
+
+        const action = isCharging ? 'stop' : 'start';
+        const url = `/api/update_charging_status/`;
+        
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                station_id: stationId,
+                action: action
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            apiResponse.textContent = JSON.stringify(data, null, 2);
+            if (data.success) {
+                isCharging = !isCharging;
+                chargeToggle.querySelector('.btn-label').textContent = isCharging ? 'Stop Charging' : 'Start Charging';
+                chargeToggle.className = `btn btn-emergency ${isCharging ? 'btn-danger' : 'btn-success'}`;
+                statusMessage.textContent = isCharging ? 'Charging in progress' : 'Charging stopped';
+            }
+        })
+        .catch(error => {
+            apiResponse.textContent = `Error: ${error.message}`;
+        });
+    });
+
+    // Helper function to get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
+{% endblock %}
+{% endblock %} 
