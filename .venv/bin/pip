@@ -1,5 +1,5 @@
 #!/bin/sh
-'''exec' "/Users/gouravkalye/Documents/Documents - gourav’s MacBook Air/github/ev-charger/web/.venv/bin/python" "$0" "$@"
+'''exec' "/Users/gouravkalye/Documents/Documents - gourav’s MacBook Air/github/ev-charger/web/.venv/bin/python3.13" "$0" "$@"
 ' '''
 # -*- coding: utf-8 -*-
 import re

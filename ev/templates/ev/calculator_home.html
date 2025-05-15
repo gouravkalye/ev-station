@@ -1,0 +1,51 @@
+{% extends 'ev/base.html' %}
+{% load static %}
+
+{% block title %}EV Cost Calculator{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <h1 class="text-center mb-4">EV Cost Calculator</h1>
+            <div class="row g-4">
+                <!-- Home Charging Calculator -->
+                <div class="col-md-4">
+                    <div class="card h-100 shadow">
+                        <img src="{% static 'ev/images/home-charging.jpg' %}" class="card-img-top" alt="Home Charging">
+                        <div class="card-body">
+                            <h5 class="card-title">Home Charging Cost</h5>
+                            <p class="card-text">Calculate how much it will cost to charge your EV at home.</p>
+                            <a href="{% url 'home_charging_calculator' %}" class="btn btn-primary">Calculate</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Public Charging Calculator -->
+                <div class="col-md-4">
+                    <div class="card h-100 shadow">
+                        <img src="{% static 'ev/images/public-charging.jpg' %}" class="card-img-top" alt="Public Charging">
+                        <div class="card-body">
+                            <h5 class="card-title">Public Charging Cost</h5>
+                            <p class="card-text">Calculate the cost and time of charging at public stations.</p>
+                            <a href="{% url 'public_charging_calculator' %}" class="btn btn-primary">Calculate</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- EV Comparison Calculator -->
+                <div class="col-md-4">
+                    <div class="card h-100 shadow">
+                        <img src="{% static 'ev/images/ev-comparison.jpg' %}" class="card-img-top" alt="EV Comparison">
+                        <div class="card-body">
+                            <h5 class="card-title">EV vs Conventional</h5>
+                            <p class="card-text">Compare the cost of running an EV versus a conventional vehicle.</p>
+                            <a href="{% url 'ev_comparison_calculator' %}" class="btn btn-primary">Calculate</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

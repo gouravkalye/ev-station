@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from .models import Station, UserProfile, ChargingSession, UserPreferences
+from .models import Station, UserProfile, ChargingSession, UserPreferences, VehicleSegment, State
 import random
 from django.views.decorators.http import require_POST
 from django.utils import timezone
@@ -391,3 +391,101 @@ def charging_api(request):
 
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+def calculator_home(request):
+    return render(request, 'ev/calculator_home.html')
+
+def home_charging_calculator(request):
+    vehicle_segments = VehicleSegment.objects.all()
+    states = State.objects.all()
+    context = {
+        'vehicle_segments': vehicle_segments,
+        'states': states,
+    }
+    return render(request, 'ev/home_charging_calculator.html', context)
+
+def public_charging_calculator(request):
+    vehicle_segments = VehicleSegment.objects.all()
+    context = {
+        'vehicle_segments': vehicle_segments,
+    }
+    return render(request, 'ev/public_charging_calculator.html', context)
+
+def ev_comparison_calculator(request):
+    vehicle_segments = VehicleSegment.objects.all()
+    states = State.objects.all()
+    context = {
+        'vehicle_segments': vehicle_segments,
+        'states': states,
+    }
+    return render(request, 'ev/ev_comparison_calculator.html', context)
+
+@require_POST
+def calculate_home_charging(request):
+    try:
+        data = json.loads(request.body)
+        vehicle_segment = VehicleSegment.objects.get(id=data['vehicle_segment'])
+        state = State.objects.get(id=data['state'])
+        battery_capacity = Decimal(str(data['battery_capacity']))  # Convert to string first
+        distance = Decimal(str(data['distance']))  # Convert to string first
+        
+        # Calculate charging cost
+        charging_cost = battery_capacity * state.domestic_tariff
+        charging_time = battery_capacity / Decimal('7.2')  # Convert 7.2 to Decimal
+        
+        return JsonResponse({
+            'success': True,
+            'charging_cost': float(charging_cost),
+            'charging_time': float(charging_time),
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@require_POST
+def calculate_public_charging(request):
+    try:
+        data = json.loads(request.body)
+        vehicle_segment = VehicleSegment.objects.get(id=data['vehicle_segment'])
+        battery_capacity = Decimal(data['battery_capacity'])
+        charger_power = Decimal(data['charger_power'])
+        cost_per_kwh = Decimal(data['cost_per_kwh'])
+        
+        # Calculate charging cost and time
+        charging_cost = battery_capacity * cost_per_kwh
+        charging_time = battery_capacity / charger_power
+        
+        return JsonResponse({
+            'success': True,
+            'charging_cost': float(charging_cost),
+            'charging_time': float(charging_time),
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@require_POST
+def calculate_ev_comparison(request):
+    try:
+        data = json.loads(request.body)
+        vehicle_segment = VehicleSegment.objects.get(id=data['vehicle_segment'])
+        state = State.objects.get(id=data['state'])
+        annual_distance = Decimal(data['annual_distance'])
+        home_charging_percentage = Decimal(data['home_charging_percentage'])
+        public_charging_percentage = Decimal(data['public_charging_percentage'])
+        conventional_mileage = Decimal(data['conventional_mileage'])
+        
+        # Calculate costs
+        total_energy_needed = (annual_distance / vehicle_segment.average_range) * vehicle_segment.battery_capacity
+        home_charging_cost = (total_energy_needed * home_charging_percentage / 100) * state.domestic_tariff
+        public_charging_cost = (total_energy_needed * public_charging_percentage / 100) * state.public_charging_cost
+        
+        # Calculate conventional fuel cost (assuming ₹100 per liter)
+        fuel_cost = (annual_distance / conventional_mileage) * 100
+        
+        return JsonResponse({
+            'success': True,
+            'ev_total_cost': float(home_charging_cost + public_charging_cost),
+            'conventional_cost': float(fuel_cost),
+            'savings': float(fuel_cost - (home_charging_cost + public_charging_cost)),
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})

@@ -73,3 +73,19 @@ class ChargingSession(models.Model):
         if self.end_time:
             return self.end_time - self.start_time
         return timezone.now() - self.start_time
+
+class VehicleSegment(models.Model):
+    name = models.CharField(max_length=100)
+    average_range = models.DecimalField(max_digits=10, decimal_places=2)
+    battery_capacity = models.DecimalField(max_digits=10, decimal_places=2)
+    
+    def __str__(self):
+        return self.name
+
+class State(models.Model):
+    name = models.CharField(max_length=100)
+    domestic_tariff = models.DecimalField(max_digits=10, decimal_places=2)
+    public_charging_cost = models.DecimalField(max_digits=10, decimal_places=2)
+    
+    def __str__(self):
+        return self.name

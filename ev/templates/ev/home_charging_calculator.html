@@ -1,0 +1,197 @@
+{% extends 'ev/base.html' %}
+{% load static %}
+
+{% block title %}Home Charging Calculator - EV Charger{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-house-fill me-2"></i>
+                        Home Charging Cost Calculator
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form id="homeChargingForm">
+                        <!-- Vehicle Segment -->
+                        <div class="mb-3">
+                            <label for="vehicleSegment" class="form-label">
+                                Vehicle Segment
+                                <i class="bi bi-info-circle" data-bs-toggle="tooltip" title="Select your vehicle type"></i>
+                            </label>
+                            <select class="form-select" id="vehicleSegment" required>
+                                <option value="">Select</option>
+                                {% for segment in vehicle_segments %}
+                                <option value="{{ segment.id }}" 
+                                        data-battery="{{ segment.battery_capacity }}"
+                                        data-range="{{ segment.average_range }}">
+                                    {{ segment.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- State -->
+                        <div class="mb-3">
+                            <label for="state" class="form-label">
+                                State
+                                <i class="bi bi-info-circle" data-bs-toggle="tooltip" title="Select your state for domestic tariff"></i>
+                            </label>
+                            <select class="form-select" id="state" required>
+                                <option value="">Select</option>
+                                {% for state in states %}
+                                <option value="{{ state.id }}" data-tariff="{{ state.domestic_tariff }}">
+                                    {{ state.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Battery Capacity -->
+                        <div class="mb-3">
+                            <label for="batteryCapacity" class="form-label">
+                                Battery Capacity
+                                <i class="bi bi-info-circle" data-bs-toggle="tooltip" title="Vehicle's battery capacity in kWh"></i>
+                            </label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="batteryCapacity" required step="0.1" min="0">
+                                <span class="input-group-text">kWh</span>
+                            </div>
+                        </div>
+
+                        <!-- Range -->
+                        <div class="mb-3">
+                            <label for="range" class="form-label">
+                                Range
+                                <i class="bi bi-info-circle" data-bs-toggle="tooltip" title="Vehicle's range on full charge"></i>
+                            </label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="range" required step="1" min="0">
+                                <span class="input-group-text">km</span>
+                            </div>
+                        </div>
+
+                        <!-- Distance -->
+                        <div class="mb-3">
+                            <label for="distance" class="form-label">
+                                Distance to be travelled
+                                <i class="bi bi-info-circle" data-bs-toggle="tooltip" title="Enter the distance you plan to travel"></i>
+                            </label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="distance" required step="1" min="0">
+                                <span class="input-group-text">km</span>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Calculate Total Cost</button>
+                    </form>
+
+                    <!-- Results -->
+                    <div id="results" class="mt-4" style="display: none;">
+                        <h5>Results</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Charging Cost</h6>
+                                        <p class="card-text h3 text-primary">₹<span id="chargingCost">0.00</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Charging Time</h6>
+                                        <p class="card-text h3 text-primary"><span id="chargingTime">0</span> hours</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('homeChargingForm');
+    const vehicleSegment = document.getElementById('vehicleSegment');
+    const batteryCapacity = document.getElementById('batteryCapacity');
+    const range = document.getElementById('range');
+    
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+
+    // Auto-fill battery capacity and range when vehicle segment changes
+    vehicleSegment.addEventListener('change', function() {
+        const selected = this.options[this.selectedIndex];
+        if (selected.value) {
+            batteryCapacity.value = selected.dataset.battery;
+            range.value = selected.dataset.range;
+        } else {
+            batteryCapacity.value = '';
+            range.value = '';
+        }
+    });
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const data = {
+            vehicle_segment: vehicleSegment.value,
+            state: document.getElementById('state').value,
+            battery_capacity: batteryCapacity.value,
+            distance: document.getElementById('distance').value
+        };
+
+        fetch('/calculate-home-charging/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('results').style.display = 'block';
+                document.getElementById('chargingCost').textContent = data.charging_cost.toFixed(2);
+                document.getElementById('chargingTime').textContent = data.charging_time.toFixed(1);
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error.message);
+        });
+    });
+
+    // Helper function to get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
+{% endblock %}
+{% endblock %} 
