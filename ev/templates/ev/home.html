@@ -31,6 +31,17 @@
     .server-info-card {
         background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
     }
+    .usage-logs {
+        max-height: 200px;
+        overflow-y: auto;
+    }
+    .log-entry {
+        padding: 8px;
+        border-bottom: 1px solid #eee;
+    }
+    .log-entry:last-child {
+        border-bottom: none;
+    }
 </style>
 {% endblock %}
 
@@ -169,28 +180,8 @@
                             <i class="bi bi-clock-history me-1"></i>
                             Recent Usage
                         </h6>
-                        <div class="usage-logs">
-                            <div class="log-entry">
-                                <div class="log-time">Today, 10:30 AM</div>
-                                <div class="log-details">
-                                    <span class="log-energy">2.5 kWh</span>
-                                    <span class="log-cost">₹25.00</span>
-                                </div>
-                            </div>
-                            <div class="log-entry">
-                                <div class="log-time">Yesterday, 3:45 PM</div>
-                                <div class="log-details">
-                                    <span class="log-energy">5.0 kWh</span>
-                                    <span class="log-cost">₹50.00</span>
-                                </div>
-                            </div>
-                            <div class="log-entry">
-                                <div class="log-time">Yesterday, 9:15 AM</div>
-                                <div class="log-details">
-                                    <span class="log-energy">3.2 kWh</span>
-                                    <span class="log-cost">₹32.00</span>
-                                </div>
-                            </div>
+                        <div class="usage-logs" id="recent-usage-logs">
+                            <!-- Will be populated dynamically -->
                         </div>
                     </div>
                 </div>
@@ -267,240 +258,262 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     let isCharging = false;
     let voltage = 230;
     let current = 15;
     let currentStation = null;
-
-    // Station selection handling
-    document.querySelectorAll('.station-row').forEach(row => {
-        row.addEventListener('click', function() {
-            const isAvailable = this.dataset.stationAvailable === 'True';
-            
-            // Update current station
-            currentStation = {
-                id: this.dataset.stationId,
-                name: this.dataset.stationName,
-                address: this.dataset.stationAddress,
-                city: this.dataset.stationCity,
-                state: this.dataset.stationState,
-                isAvailable: isAvailable
-            };
-
-            // Update display
-            document.getElementById('current-station-name').textContent = currentStation.name;
-            document.getElementById('current-station-location').textContent = 
-                `${currentStation.address}, ${currentStation.city}, ${currentStation.state}`;
-            
-            // Update status badge
-            const statusBadge = document.getElementById('current-station-status');
-            if (currentStation.isAvailable) {
-                statusBadge.className = 'badge bg-success';
-                statusBadge.innerHTML = '<i class="bi bi-check-circle"></i>';
-                document.getElementById('chargeToggle').disabled = false;
-            } else {
-                statusBadge.className = 'badge bg-danger';
-                statusBadge.innerHTML = '<i class="bi bi-x-circle"></i>';
-                document.getElementById('chargeToggle').disabled = true;
-            }
-
-            // Update last updated time
-            document.getElementById('last-updated').textContent = new Date().toLocaleTimeString();
-
-            // Highlight selected row
-            document.querySelectorAll('.station-row').forEach(r => r.classList.remove('table-primary'));
-            this.classList.add('table-primary');
-        });
-    });
-
-    // Refresh station button
-    document.getElementById('refresh-station').addEventListener('click', function() {
-        if (currentStation) {
-            document.getElementById('last-updated').textContent = new Date().toLocaleTimeString();
-        }
-    });
+    let chargingChart = null;
 
     // Initialize chart
-    const ctx = document.getElementById('chargingChart').getContext('2d');
-    const chart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: [],
-            datasets: [
-                {
-                    label: 'Voltage (V)',
-                    data: [],
-                    borderColor: 'rgb(255, 99, 132)',
-                    tension: 0.1,
-                    fill: false,
-                    yAxisID: 'y'
-                },
-                {
-                    label: 'Current (A)',
-                    data: [],
-                    borderColor: 'rgb(54, 162, 235)',
-                    tension: 0.1,
-                    fill: false,
-                    yAxisID: 'y1'
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: {
-                mode: 'index',
-                intersect: false,
+    function initializeChart() {
+        const ctx = document.getElementById('chargingChart').getContext('2d');
+        chargingChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Voltage (V)',
+                        data: [],
+                        borderColor: 'rgb(255, 99, 132)',
+                        tension: 0.1,
+                        fill: false,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Current (A)',
+                        data: [],
+                        borderColor: 'rgb(54, 162, 235)',
+                        tension: 0.1,
+                        fill: false,
+                        yAxisID: 'y1'
+                    }
+                ]
             },
-            scales: {
-                y: {
-                    type: 'linear',
-                    display: true,
-                    position: 'left',
-                    title: {
-                        display: true,
-                        text: 'Voltage (V)'
-                    },
-                    min: 220,
-                    max: 260
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
                 },
-                y1: {
-                    type: 'linear',
-                    display: true,
-                    position: 'right',
-                    title: {
+                scales: {
+                    y: {
+                        type: 'linear',
                         display: true,
-                        text: 'Current (A)'
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Voltage (V)'
+                        },
+                        min: 220,
+                        max: 260
                     },
-                    min: 14,
-                    max: 17,
-                    grid: {
-                        drawOnChartArea: false
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'Current (A)'
+                        },
+                        min: 14,
+                        max: 17,
+                        grid: {
+                            drawOnChartArea: false
+                        }
                     }
                 }
             }
-        }
-    });
-
-    // Update station information
-    function updateServerInfo() {
-        // Generate random values within range
-        if (isCharging && currentStation) {
-            voltage = 230 + Math.random() * 20; // Random between 230-250
-            current = 15 + Math.random(); // Random between 15-16
-            
-            // Update current station values
-            document.querySelector(`#charge-voltage-${currentStation.id} .voltage-value`).textContent = voltage.toFixed(1);
-            document.querySelector(`#charge-current-${currentStation.id} .current-value`).textContent = current.toFixed(1);
-            
-            // Update last used time for current station
-            document.querySelector(`[data-station-id="${currentStation.id}"] .time-value`).textContent = 
-                new Date().toLocaleTimeString();
-        } else if (currentStation) {
-            // Reset values for current station
-            document.querySelector(`#charge-voltage-${currentStation.id} .voltage-value`).textContent = '0';
-            document.querySelector(`#charge-current-${currentStation.id} .current-value`).textContent = '0';
-        }
-
-        // Update display
-        document.getElementById('station-time').textContent = new Date().toLocaleTimeString();
-        document.getElementById('charging-voltage').textContent = voltage.toFixed(1) + ' V';
-        document.getElementById('charging-current').textContent = current.toFixed(1) + ' A';
-        
-        // Update chart
-        const time = new Date().toLocaleTimeString();
-        
-        // Add new data points
-        chart.data.labels.push(time);
-        chart.data.datasets[0].data.push(voltage);
-        chart.data.datasets[1].data.push(current);
-        
-        // Keep only last 20 data points
-        if (chart.data.labels.length > 20) {
-            chart.data.labels.shift();
-            chart.data.datasets[0].data.shift();
-            chart.data.datasets[1].data.shift();
-        }
-        
-        // Update chart
-        chart.update('none');
-    }
-
-    // Update the toggleCharging function
-    function toggleCharging() {
-        const chargeToggle = document.getElementById('chargeToggle');
-        const isCharging = chargeToggle.classList.contains('btn-warning');
-        
-        if (isCharging) {
-            // Stop charging
-            chargeToggle.classList.remove('btn-warning');
-            chargeToggle.classList.add('btn-success');
-            chargeToggle.innerHTML = '<i class="bi bi-play-fill"></i><span class="btn-label">Start Charging</span>';
-            
-            const statusBadge = document.getElementById('current-station-status');
-            statusBadge.className = 'badge bg-success';
-            statusBadge.innerHTML = '<i class="bi bi-check-circle"></i>';
-            
-            // Update station row status
-            const stationRow = document.querySelector(`[data-station-id="${currentStation.id}"]`);
-            const statusCell = stationRow.querySelector('.badge');
-            statusCell.className = 'badge bg-success';
-            statusCell.innerHTML = '<i class="bi bi-check-circle"></i>';
-            
-            // Send status update to server
-            sendChargingStatus(false);
-        } else {
-            // Start charging
-            chargeToggle.classList.remove('btn-success');
-            chargeToggle.classList.add('btn-warning');
-            chargeToggle.innerHTML = '<i class="bi bi-stop-fill"></i><span class="btn-label">Stop Charging</span>';
-            
-            const statusBadge = document.getElementById('current-station-status');
-            statusBadge.className = 'badge bg-warning';
-            statusBadge.innerHTML = '<i class="bi bi-lightning-charge"></i>';
-            
-            // Update station row status
-            const stationRow = document.querySelector(`[data-station-id="${currentStation.id}"]`);
-            const statusCell = stationRow.querySelector('.badge');
-            statusCell.className = 'badge bg-warning';
-            statusCell.innerHTML = '<i class="bi bi-lightning-charge"></i>';
-            
-            // Send status update to server
-            sendChargingStatus(true);
-        }
-    }
-
-    // Add new function to send charging status to server
-    function sendChargingStatus(isCharging) {
-        if (!currentStation) return;
-        
-        const data = {
-            station_id: currentStation.id,
-            station_name: currentStation.name,
-            station_location: `${currentStation.address}, ${currentStation.city}, ${currentStation.state}`,
-            is_charging: isCharging
-        };
-        
-        fetch('/api/update_charging_status/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify(data)
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'error') {
-                console.error('Error updating charging status:', data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
         });
     }
+
+    // Update station information
+    function updateStationInfo() {
+        if (!currentStation) return;
+
+        $.ajax({
+            url: '/api/set_current_station/',
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            data: JSON.stringify({
+                station_id: currentStation.id
+            }),
+            contentType: 'application/json',
+            success: function(data) {
+                if (data.status === 'success') {
+                    updateStationDisplay(data.data);
+                }
+            }
+        });
+    }
+
+    // Update station display
+    function updateStationDisplay(stationData) {
+        $('#current-station-name').text(stationData.station_name);
+        $('#current-station-location').text(
+            `${stationData.station_address}, ${stationData.station_city}, ${stationData.station_state}`
+        );
+        
+        const statusBadge = $('#current-station-status');
+        if (stationData.is_available) {
+            statusBadge.removeClass('bg-danger').addClass('bg-success')
+                .html('<i class="bi bi-check-circle"></i>');
+            $('#chargeToggle').prop('disabled', false);
+        } else {
+            statusBadge.removeClass('bg-success').addClass('bg-danger')
+                .html('<i class="bi bi-x-circle"></i>');
+            $('#chargeToggle').prop('disabled', true);
+        }
+
+        $('#last-updated').text(new Date().toLocaleTimeString());
+    }
+
+    // Update recent usage logs
+    function updateRecentUsage() {
+        $.ajax({
+            url: '/api/get_recent_usage/',
+            method: 'GET',
+            success: function(data) {
+                const logsContainer = $('#recent-usage-logs');
+                logsContainer.empty();
+
+                data.logs.forEach(log => {
+                    logsContainer.append(`
+                        <div class="log-entry">
+                            <div class="log-time">${log.time}</div>
+                            <div class="log-details">
+                                <span class="log-energy">${log.energy} kWh</span>
+                                <span class="log-cost">₹${log.cost}</span>
+                            </div>
+                        </div>
+                    `);
+                });
+            }
+        });
+    }
+
+    // Update charging status
+    function updateChargingStatus() {
+        if (!currentStation) return;
+
+        $.ajax({
+            url: '/api/update_charging_status/',
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            data: JSON.stringify({
+                station_id: currentStation.id,
+                station_name: currentStation.name,
+                station_location: `${currentStation.address}, ${currentStation.city}, ${currentStation.state}`,
+                is_charging: isCharging
+            }),
+            contentType: 'application/json',
+            success: function(data) {
+                if (data.status === 'success') {
+                    updateChargingDisplay(data.data);
+                }
+            }
+        });
+    }
+
+    // Update charging display
+    function updateChargingDisplay(data) {
+        if (data.is_charging) {
+            voltage = 230 + Math.random() * 20;
+            current = 15 + Math.random();
+            
+            $('#session-duration').text(data.duration || '00:00:00');
+            $('#energy-used').text(`${data.energy_used || '0.0'} kWh`);
+            $('#session-cost').text(`₹${data.cost || '0.00'}`);
+            
+            // Update chart
+            const time = new Date().toLocaleTimeString();
+            chargingChart.data.labels.push(time);
+            chargingChart.data.datasets[0].data.push(voltage);
+            chargingChart.data.datasets[1].data.push(current);
+            
+            if (chargingChart.data.labels.length > 20) {
+                chargingChart.data.labels.shift();
+                chargingChart.data.datasets[0].data.shift();
+                chargingChart.data.datasets[1].data.shift();
+            }
+            
+            chargingChart.update('none');
+        }
+    }
+
+    // Initialize everything when document is ready
+    $(document).ready(function() {
+        initializeChart();
+        
+        // Set up periodic updates
+        setInterval(function() {
+            updateStationInfo();
+            updateRecentUsage();
+            updateChargingStatus();
+        }, 5000);  // Update every 5 seconds
+
+        // Initial updates
+        updateStationInfo();
+        updateRecentUsage();
+        updateChargingStatus();
+
+        // Station selection handling
+        $('.station-row').click(function() {
+            const $row = $(this);
+            currentStation = {
+                id: $row.data('station-id'),
+                name: $row.data('station-name'),
+                address: $row.data('station-address'),
+                city: $row.data('station-city'),
+                state: $row.data('station-state'),
+                isAvailable: $row.data('station-available') === 'True'
+            };
+
+            $('.station-row').removeClass('table-primary');
+            $row.addClass('table-primary');
+
+            updateStationInfo();
+        });
+
+        // Charge toggle handling
+        $('#chargeToggle').click(function() {
+            if (!currentStation) return;
+
+            isCharging = !isCharging;
+            const $btn = $(this);
+            
+            if (isCharging) {
+                $btn.removeClass('btn-success').addClass('btn-warning')
+                    .html('<i class="bi bi-stop-fill"></i><span class="btn-label">Stop Charging</span>');
+                $('#current-station-status')
+                    .removeClass('bg-success').addClass('bg-warning')
+                    .html('<i class="bi bi-lightning-charge"></i>');
+            } else {
+                $btn.removeClass('btn-warning').addClass('btn-success')
+                    .html('<i class="bi bi-play-fill"></i><span class="btn-label">Start Charging</span>');
+                $('#current-station-status')
+                    .removeClass('bg-warning').addClass('bg-success')
+                    .html('<i class="bi bi-check-circle"></i>');
+            }
+
+            updateChargingStatus();
+        });
+
+        // Refresh button handling
+        $('#refresh-station').click(function() {
+            if (currentStation) {
+                updateStationInfo();
+            }
+        });
+    });
 
     // Helper function to get CSRF token
     function getCookie(name) {
@@ -517,9 +530,5 @@
         }
         return cookieValue;
     }
-
-    // Update every second
-    setInterval(updateServerInfo, 1000);
-    updateServerInfo(); // Initial update
 </script>
 {% endblock %}

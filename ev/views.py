@@ -489,3 +489,65 @@ def calculate_ev_comparison(request):
         })
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
+
+@csrf_exempt
+@require_POST
+def set_current_station(request):
+    try:
+        data = json.loads(request.body)
+        station_id = data.get('station_id')
+        
+        # Get the station details
+        station = Station.objects.get(id=station_id)
+        
+        response_data = {
+            'status': 'success',
+            'data': {
+                'station_id': station.id,
+                'station_name': station.name,
+                'station_address': station.address,
+                'station_city': station.city,
+                'station_state': station.state,
+                'is_available': station.is_available
+            }
+        }
+        return JsonResponse(response_data)
+        
+    except Station.DoesNotExist:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Station not found'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=400)
+
+@csrf_exempt
+@require_POST
+def get_recent_usage(request):
+    try:
+        # Get the last 5 charging sessions for the current user
+        recent_sessions = ChargingSession.objects.filter(
+            user=request.user
+        ).order_by('-start_time')[:5]
+
+        logs = []
+        for session in recent_sessions:
+            logs.append({
+                'time': session.start_time.strftime('%Y-%m-%d %H:%M:%S'),
+                'energy': float(session.energy_consumed),
+                'cost': float(session.cost)
+            })
+
+        return JsonResponse({
+            'status': 'success',
+            'logs': logs
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=400)

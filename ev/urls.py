@@ -19,6 +19,8 @@ urlpatterns = [
     path('register/', views.register, name='register'),
     path('api/update_charging_status/', views.update_charging_status, name='update_charging_status'),
     path('api/charging/', views.charging_api, name='charging_api'),
+    path('api/set_current_station/', views.set_current_station, name='set_current_station'),
+    path('api/get_recent_usage/', views.get_recent_usage, name='get_recent_usage'),
     path('test-api/', views.test_api, name='test_api'),
     
     # Calculator URLs
