@@ -525,7 +525,7 @@ def set_current_station(request):
         }, status=400)
 
 @csrf_exempt
-@require_POST
+@login_required
 def get_recent_usage(request):
     try:
         # Get the last 5 charging sessions for the current user

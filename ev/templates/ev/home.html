@@ -379,21 +379,49 @@
         $.ajax({
             url: '/api/get_recent_usage/',
             method: 'GET',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            },
             success: function(data) {
-                const logsContainer = $('#recent-usage-logs');
-                logsContainer.empty();
+                if (data.status === 'success') {
+                    const logsContainer = $('#recent-usage-logs');
+                    logsContainer.empty();
 
-                data.logs.forEach(log => {
-                    logsContainer.append(`
-                        <div class="log-entry">
-                            <div class="log-time">${log.time}</div>
-                            <div class="log-details">
-                                <span class="log-energy">${log.energy} kWh</span>
-                                <span class="log-cost">₹${log.cost}</span>
+                    if (data.logs.length === 0) {
+                        logsContainer.append(`
+                            <div class="log-entry text-muted">
+                                <div class="text-center">No recent usage data</div>
                             </div>
+                        `);
+                    } else {
+                        data.logs.forEach(log => {
+                            logsContainer.append(`
+                                <div class="log-entry">
+                                    <div class="log-time">${log.time}</div>
+                                    <div class="log-details">
+                                        <span class="log-energy">${log.energy} kWh</span>
+                                        <span class="log-cost">₹${log.cost}</span>
+                                    </div>
+                                </div>
+                            `);
+                        });
+                    }
+                } else {
+                    console.error('Error fetching recent usage:', data.message);
+                    $('#recent-usage-logs').html(`
+                        <div class="log-entry text-danger">
+                            <div class="text-center">Error loading usage data</div>
                         </div>
                     `);
-                });
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error fetching recent usage:', error);
+                $('#recent-usage-logs').html(`
+                    <div class="log-entry text-danger">
+                        <div class="text-center">Error loading usage data</div>
+                    </div>
+                `);
             }
         });
     }
