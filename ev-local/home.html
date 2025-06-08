@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>EV Charging Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #007BFF;
+            --success: #28a745;
+            --warning: #FFC107;
+            --danger: #DC3545;
+            --bg: #f2f2f2;
+            --card: #fff;
+            --text: #222;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 10px;
+            font-family: 'Roboto', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .dashboard {
+            max-width: 1280px;
+            margin: auto;
+            background: var(--card);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            font-size: 2.2em;
+            color: var(--primary);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .status-box {
+            background: var(--card);
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.08);
+            transition: transform 0.2s;
+        }
+
+        .status-box:hover {
+            transform: translateY(-4px);
+        }
+
+        .status-box i {
+            font-size: 1.8em;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+
+        .status-box h3 {
+            font-size: 0.9em;
+            color: #666;
+            text-transform: uppercase;
+            margin: 0;
+        }
+
+        .status-box .value {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        .progress-container {
+            margin: 20px 0;
+            background: #fff;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.08);
+        }
+
+        .progress-bar {
+            height: 20px;
+            background: #ddd;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--success));
+            width: 0%;
+            transition: width 0.4s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            margin-top: 8px;
+            font-size: 1em;
+            color: #444;
+        }
+
+        .control-button {
+            display: block;
+            margin: 25px auto;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            border: none;
+            border-radius: 25px;
+            background: var(--success);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .control-button.stop {
+            background: var(--danger);
+        }
+
+        .control-button:hover {
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            transform: scale(1.03);
+        }
+
+        .charging-animation {
+            text-align: center;
+            font-size: 2em;
+            color: var(--primary);
+            margin: 15px 0;
+        }
+
+        .charging-animation i {
+            animation: pulse 1s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.2); }
+        }
+
+        .timestamp {
+            text-align: center;
+            font-size: 0.9em;
+            color: #777;
+            margin-top: 10px;
+        }
+
+        .error-message {
+            background: rgba(220, 53, 69, 0.1);
+            color: var(--danger);
+            padding: 10px;
+            text-align: center;
+            margin-top: 10px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .temperature-warning {
+            color: var(--warning);
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <h1><i class="fas fa-charging-station"></i> EV Charging Dashboard</h1>
+
+        <div class="status-grid">
+            <div class="status-box">
+                <i class="fas fa-bolt"></i>
+                <h3>Current Power</h3>
+                <div class="value" id="currentPower">0 W</div>
+            </div>
+            <div class="status-box">
+                <i class="fas fa-battery-full"></i>
+                <h3>Total Energy</h3>
+                <div class="value" id="totalEnergy">0 kWh</div>
+            </div>
+            <div class="status-box">
+                <i class="fas fa-clock"></i>
+                <h3>Time Elapsed</h3>
+                <div class="value" id="timeElapsed">0:00</div>
+            </div>
+            <div class="status-box">
+                <i class="fas fa-plug"></i>
+                <h3>Voltage</h3>
+                <div class="value" id="voltage">0 V</div>
+            </div>
+            <div class="status-box">
+                <i class="fas fa-battery-half"></i>
+                <h3>Current</h3>
+                <div class="value" id="current">0 A</div>
+            </div>
+            <div class="status-box">
+                <i class="fas fa-temperature-high"></i>
+                <h3>Temperature</h3>
+                <div class="value" id="temperature">0 °C</div>
+            </div>
+        </div>
+
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-fill" id="chargeProgress"></div>
+            </div>
+            <div class="progress-text">Charge Level: <span id="chargeLevel">0</span>%</div>
+        </div>
+
+        <div class="charging-animation" id="chargingAnimation" style="display: none;">
+            <i class="fas fa-bolt"></i> Charging...
+        </div>
+
+        <button class="control-button" id="controlButton">Start Charging</button>
+
+        <div class="error-message" id="errorMessage"></div>
+        <div class="timestamp" id="timestamp"></div>
+    </div>
+
+    <script>
+        const ws = new WebSocket("ws://localhost:6789");
+        let isCharging = false;
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        function formatPower(watts) {
+            return watts >= 1000 ? `${(watts / 1000).toFixed(1)} kW` : `${watts} W`;
+        }
+
+        function formatEnergy(wattHours) {
+            return `${(wattHours / 1000).toFixed(2)} kWh`;
+        }
+
+        function updateUI(data) {
+            document.getElementById('currentPower').textContent = formatPower(data.current_power);
+            document.getElementById('totalEnergy').textContent = formatEnergy(data.total_energy);
+            document.getElementById('timeElapsed').textContent = formatTime(data.elapsed_time);
+            document.getElementById('voltage').textContent = `${data.voltage} V`;
+            document.getElementById('current').textContent = `${data.current} A`;
+            document.getElementById('temperature').textContent = `${data.temperature} °C`;
+
+            const chargeLevel = data.charge_level.toFixed(1);
+            document.getElementById('chargeLevel').textContent = chargeLevel;
+            document.getElementById('chargeProgress').style.width = `${chargeLevel}%`;
+
+            if (data.temperature > 35) {
+                document.getElementById('temperature').classList.add('temperature-warning');
+            } else {
+                document.getElementById('temperature').classList.remove('temperature-warning');
+            }
+
+            document.getElementById('timestamp').textContent = `Last update: ${data.timestamp}`;
+
+            const btn = document.getElementById('controlButton');
+            const anim = document.getElementById('chargingAnimation');
+
+            if (data.is_charging) {
+                btn.textContent = "Stop Charging";
+                btn.classList.add('stop');
+                anim.style.display = 'block';
+                isCharging = true;
+            } else {
+                btn.textContent = "Start Charging";
+                btn.classList.remove('stop');
+                anim.style.display = 'none';
+                isCharging = false;
+            }
+        }
+
+        ws.onopen = () => {
+            document.getElementById('errorMessage').style.display = 'none';
+        };
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            updateUI(data);
+        };
+
+        ws.onerror = () => {
+            document.getElementById('errorMessage').textContent = "WebSocket connection failed.";
+            document.getElementById('errorMessage').style.display = 'block';
+        };
+
+        document.getElementById('controlButton').addEventListener('click', () => {
+            const action = isCharging ? 'stop_charging' : 'start_charging';
+            ws.send(JSON.stringify({ action }));
+        });
+    </script>
+</body>
+</html>
