@@ -222,6 +222,7 @@
         </div>
 
         <button class="control-button" id="controlButton">Start Charging</button>
+        <button class="control-button" id="exitButton" style="background: #6c757d;">Exit</button>
 
         <div class="error-message" id="errorMessage"></div>
         <div class="timestamp" id="timestamp"></div>
@@ -299,6 +300,14 @@
             const action = isCharging ? 'stop_charging' : 'start_charging';
             ws.send(JSON.stringify({ action }));
         });
+        document.getElementById("exitButton").addEventListener("click", () => {
+        if (!isCharging) {
+            window.location.href = "login.html";
+        } else {
+        alert("Please stop charging before exiting.");
+    }
+});
+
     </script>
 </body>
 </html>

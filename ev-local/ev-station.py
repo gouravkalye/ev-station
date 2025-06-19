@@ -96,6 +96,7 @@ def simulate_rfid_input():
         print(f"RFID ID: {id}")
         if rfid_id:
             asyncio.run(send_simulated_rfid(str(rfid_id)))
+            rfid_id = ''
 
 async def send_simulated_rfid(rfid_id):
     message = {
