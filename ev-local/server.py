@@ -3,6 +3,7 @@ import websockets
 import logging
 import json
 import time
+import subprocess
 from datetime import datetime
 
 # Set up logging
@@ -31,11 +32,13 @@ class EVChargingState:
         self.current_power = self.max_power
         self.current = self.max_power / self.voltage
         self.charge_level = 0  # percentage
+        subprocess.run(['sudo', 'raspi-gpio', 'set', '4', 'op', 'dl'])
 
     def stop_charging(self):
         self.is_charging = False
         self.current_power = 0
         self.current = 0
+        subprocess.run(['sudo', 'raspi-gpio', 'set', '4', 'op', 'dh'])
 
     def update(self):
         if self.is_charging:
