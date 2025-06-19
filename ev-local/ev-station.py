@@ -91,12 +91,11 @@ def simulate_rfid_input():
         logger.info("Waiting for RFID card...")
         rfid_id, text = reader.read()
         logger.info(f"RFID read: {rfid_id}, Text: {text.strip()}")
-        time.sleep(1)  # Debounce
-        id, text = reader.read()
         print(f"RFID ID: {id}")
         if rfid_id:
             asyncio.run(send_simulated_rfid(str(rfid_id)))
             rfid_id = ''
+        time.sleep(1.5)  # Debounce
 
 async def send_simulated_rfid(rfid_id):
     message = {
