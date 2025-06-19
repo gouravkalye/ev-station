@@ -5,10 +5,13 @@ import json
 import time
 from datetime import datetime
 import threading  # For RFID input loop
+from mfrc522 import SimpleMFRC522
+
+reader = SimpleMFRC522()
 
 # Add RFID authentication
 VALID_RFID_CARDS = {
-    "12345678": "User1",
+    "426036701631": "User1",
     "87654321": "User2"
     # Add more RFID cards as needed
 }
@@ -85,9 +88,14 @@ charging_state = EVChargingState()
 # Simulate RFID scan from terminal input
 def simulate_rfid_input():
     while True:
-        rfid_id = input("Simulate RFID scan (enter RFID ID): ").strip()
+        logger.info("Waiting for RFID card...")
+        rfid_id, text = reader.read()
+        logger.info(f"RFID read: {rfid_id}, Text: {text.strip()}")
+        time.sleep(1)  # Debounce
+        id, text = reader.read()
+        print(f"RFID ID: {id}")
         if rfid_id:
-            asyncio.run(send_simulated_rfid(rfid_id))
+            asyncio.run(send_simulated_rfid(str(rfid_id)))
 
 async def send_simulated_rfid(rfid_id):
     message = {
