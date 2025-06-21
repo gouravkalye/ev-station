@@ -22,38 +22,38 @@
 
         body {
             margin: 0;
-            padding: 10px;
+            padding: 5px;
             font-family: 'Roboto', sans-serif;
             background: var(--bg);
             color: var(--text);
         }
 
         .dashboard {
-            max-width: 1280px;
+            max-width: 100%;
             margin: auto;
             background: var(--card);
-            padding: 20px;
+            padding: 15px;
             border-radius: 15px;
             box-shadow: 0 8px 16px rgba(0,0,0,0.1);
         }
 
         h1 {
-            font-size: 2.2em;
+            font-size: 1.8em;
             color: var(--primary);
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         .status-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 15px;
-            margin-bottom: 25px;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
         }
 
         .status-box {
             background: var(--card);
-            padding: 15px;
+            padding: 10px;
             border-radius: 12px;
             text-align: center;
             box-shadow: 0 3px 6px rgba(0,0,0,0.08);
@@ -65,7 +65,7 @@
         }
 
         .status-box i {
-            font-size: 1.8em;
+            font-size: 1.6em;
             color: var(--primary);
             margin-bottom: 8px;
         }
@@ -78,13 +78,39 @@
         }
 
         .status-box .value {
-            font-size: 1.5em;
+            font-size: 1.3em;
             font-weight: bold;
             margin-top: 5px;
         }
 
+        .status-box.eta {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .status-box.eta i {
+            color: white;
+        }
+
+        .status-box.eta h3 {
+            color: rgba(255,255,255,0.9);
+        }
+
+        .status-box.target {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .status-box.target i {
+            color: white;
+        }
+
+        .status-box.target h3 {
+            color: rgba(255,255,255,0.9);
+        }
+
         .progress-container {
-            margin: 20px 0;
+            margin: 15px 0;
             background: #fff;
             padding: 15px;
             border-radius: 12px;
@@ -114,9 +140,9 @@
 
         .control-button {
             display: block;
-            margin: 25px auto;
-            padding: 15px 30px;
-            font-size: 1.1em;
+            margin: 15px auto;
+            padding: 12px 25px;
+            font-size: 1em;
             border: none;
             border-radius: 25px;
             background: var(--success);
@@ -171,11 +197,76 @@
         .temperature-warning {
             color: var(--warning);
         }
+
+        .power-input-container {
+            padding: 15px;
+            margin: 15px auto;
+            max-width: 450px;
+            text-align: center;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.08);
+        }
+
+        .spinner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .spinner-btn {
+            width: 80px;
+            height: 80px;
+            font-size: 3em;
+            font-weight: bold;
+            color: var(--primary);
+            background: #f0f0f0;
+            border: 2px solid #ddd;
+            border-radius: 50%;
+            cursor: pointer;
+            line-height: 70px;
+            transition: all 0.2s ease;
+        }
+
+        .spinner-btn:hover {
+            background: #e0e0e0;
+            transform: scale(1.05);
+        }
+
+        .spinner-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #powerUnits {
+            width: 150px;
+            height: 80px;
+            font-size: 3em;
+            text-align: center;
+            border: none;
+            background: transparent;
+            font-weight: bold;
+            color: #333;
+            -moz-appearance: textfield;
+        }
+
+        #powerUnits::-webkit-outer-spin-button,
+        #powerUnits::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
     </style>
 </head>
 <body>
     <div class="dashboard">
-        <h1><i class="fas fa-charging-station"></i> EV Charging Dashboard</h1>
+        <h1><i class="fas fa-charging-station"></i> EV Charging Dashboard <span style="font-size: 0.6em; color: var(--warning);">[FAST DEMO MODE]</span></h1>
+
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px; border-radius: 8px; margin-bottom: 15px; text-align: center; font-size: 0.9em;">
+            <i class="fas fa-info-circle"></i> 
+            <strong>Demo Mode:</strong> Charging completes in ~2 minutes for demonstration purposes. 
+            Set target energy (kWh) or let it charge to full capacity.
+        </div>
 
         <div class="status-grid">
             <div class="status-box">
@@ -217,12 +308,25 @@
             <div class="progress-text">Charge Level: <span id="chargeLevel">0</span>%</div>
         </div>
 
+        <div class="power-input-container">
+            <h3 style="font-size: 1.5em; color: #333;">Set Power Units (kWh)</h3>
+            <div class="spinner">
+                <button id="decrementUnits" class="spinner-btn">-</button>
+                <input type="number" id="powerUnits" value="0" min="0" max="100" readonly>
+                <button id="incrementUnits" class="spinner-btn">+</button>
+            </div>
+                   <div style="display: flex; justify-content: center; gap: 15px; margin: 15px 0;">
+            <button class="control-button" id="controlButton">Start Charging</button>
+            <button class="control-button" id="exitButton" style="background: #6c757d;">Exit</button>
+        </div>
+        </div>
+ 
+
         <div class="charging-animation" id="chargingAnimation" style="display: none;">
             <i class="fas fa-bolt"></i> Charging...
         </div>
 
-        <button class="control-button" id="controlButton">Start Charging</button>
-        <button class="control-button" id="exitButton" style="background: #6c757d;">Exit</button>
+        
 
         <div class="error-message" id="errorMessage"></div>
         <div class="timestamp" id="timestamp"></div>
@@ -231,6 +335,24 @@
     <script>
         const ws = new WebSocket("ws://localhost:6789");
         let isCharging = false;
+
+        const powerUnitsInput = document.getElementById('powerUnits');
+        const decrementBtn = document.getElementById('decrementUnits');
+        const incrementBtn = document.getElementById('incrementUnits');
+
+        decrementBtn.addEventListener('click', () => {
+            let currentValue = parseInt(powerUnitsInput.value);
+            if (currentValue > parseInt(powerUnitsInput.min)) {
+                powerUnitsInput.value = currentValue - 1;
+            }
+        });
+
+        incrementBtn.addEventListener('click', () => {
+            let currentValue = parseInt(powerUnitsInput.value);
+            if (currentValue < parseInt(powerUnitsInput.max)) {
+                powerUnitsInput.value = currentValue + 1;
+            }
+        });
 
         function formatTime(seconds) {
             const m = Math.floor(seconds / 60);
@@ -274,11 +396,17 @@
                 btn.classList.add('stop');
                 anim.style.display = 'block';
                 isCharging = true;
+                powerUnitsInput.disabled = true;
+                decrementBtn.disabled = true;
+                incrementBtn.disabled = true;
             } else {
                 btn.textContent = "Start Charging";
                 btn.classList.remove('stop');
                 anim.style.display = 'none';
                 isCharging = false;
+                powerUnitsInput.disabled = false;
+                decrementBtn.disabled = false;
+                incrementBtn.disabled = false;
             }
         }
 
@@ -297,16 +425,23 @@
         };
 
         document.getElementById('controlButton').addEventListener('click', () => {
-            const action = isCharging ? 'stop_charging' : 'start_charging';
-            ws.send(JSON.stringify({ action }));
+            if (isCharging) {
+                ws.send(JSON.stringify({ action: 'stop_charging' }));
+            } else {
+                const units = parseInt(document.getElementById('powerUnits').value);
+                ws.send(JSON.stringify({ action: 'start_charging', units: units }));
+            }
         });
         document.getElementById("exitButton").addEventListener("click", () => {
-        if (!isCharging) {
-            window.location.href = "login.html";
-        } else {
-        alert("Please stop charging before exiting.");
-    }
-});
+            if (!isCharging) {
+                ws.send(JSON.stringify({ action: 'exit_session' }));
+                setTimeout(() => {
+                    window.location.href = "login.html";
+                }, 100);
+            } else {
+                alert("Please stop charging before exiting.");
+            }
+        });
 
     </script>
 </body>
