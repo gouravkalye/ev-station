@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-o621ud@l))($cwiorhqy4kni31hd*de-f7tm0c&2gxe+_mm)1=
 DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
-CSRF_TRUSTED_ORIGINS = ['ev.kalye.in','smarteva.in','ev-station.local:8000']
+CSRF_TRUSTED_ORIGINS = ['https://ev.kalye.in','https://smarteva.in','http://ev-station.local:8000']
 
 
 # Application definition
