@@ -9,7 +9,7 @@ from mfrc522 import SimpleMFRC522
 import requests
 
 reader = SimpleMFRC522()
-
+per_unit_cost = 10  # Cost per kWh for charging
 server_url = "https://smarteva.in"
 # Add RFID authentication
 VALID_RFID_CARDS = {
@@ -42,8 +42,10 @@ class EVChargingState:
         self.estimated_time = 0  # estimated time to complete charging
         self.initial_charge_level = 0  # starting charge level
         self.user_balance = 0  # user balance
+        self.session_cost = 0  # cost of the charging session
 
     def start_charging(self, required_kwh=0):
+        self.reset_state()
         self.is_charging = True
         self.start_time = time.time()
         self.initial_charge_level = self.charge_level
@@ -71,6 +73,7 @@ class EVChargingState:
         self.required_power = 0
         self.estimated_time = 0
         self.initial_charge_level = 0
+        self.session_cost = 0
         print("All charging state reset to initial values.")
 
     def calculate_estimated_time(self):
@@ -101,6 +104,9 @@ class EVChargingState:
             self.charge_level = min(100, self.charge_level + charge_rate)
             self.total_energy += (self.current_power / 3600)  # Convert watts to watt-hours per second
             
+            # Calculate session cost based on energy consumed
+            self.session_cost = (self.total_energy / 1000) * per_unit_cost  # Convert Wh to kWh for cost calculation
+            
             # Simulate temperature changes
             self.temperature = 25 + (self.charge_level / 10) + (self.current_power / 1000)
             
@@ -130,15 +136,12 @@ class EVChargingState:
             if self.required_power > 0 and self.total_energy >= self.required_power:
                 logger.info(f"Required power of {self.required_power} Wh reached. Stopping charge.")
                 self.stop_charging()
-                self.reset_state()
             elif self.required_power == 0 and self.current < (1 * simulate_fast_charge_current) and self.charge_level > 98:
                 logger.info("Battery is full (current < 1A). Stopping charge.")
                 self.stop_charging()
-                self.reset_state()
             elif self.charge_level >= 100:
                 logger.info("Battery fully charged (100%). Stopping charge.")
                 self.stop_charging()
-                self.reset_state()
 
             logger.info(f"Charging Status - Power: {self.current_power:.0f}W, Energy: {self.total_energy:.2f}Wh, Level: {self.charge_level:.1f}%, Current: {self.current:.1f}A, Temp: {self.temperature:.1f}°C, ETA: {self.estimated_time:.0f}s")
 
@@ -146,6 +149,7 @@ class EVChargingState:
                 "is_charging": self.is_charging,
                 "current_power": self.current_power,
                 "total_energy": round(self.total_energy, 2),
+                "session_cost": round(self.session_cost, 2),
                 "charge_level": round(self.charge_level, 1),
                 "elapsed_time": round(time.time() - self.start_time, 1) if self.start_time else 0,
                 "estimated_time": round(self.estimated_time, 1),
@@ -159,6 +163,7 @@ class EVChargingState:
             "is_charging": False,
             "current_power": 0,
             "total_energy": round(self.total_energy, 2),
+            "session_cost": round(self.session_cost, 2),
             "charge_level": round(self.charge_level, 1),
             "elapsed_time": 0,
             "estimated_time": 0,
@@ -235,11 +240,11 @@ async def handler(websocket):
                     charging_state.start_charging(required_kwh=units)
                     print(f"Charging started with required power: {units} kWh")
                 elif data.get("action") == "stop_charging":
+                    print(f"Received stop_charging action. Current state: is_charging={charging_state.is_charging}")
                     charging_state.stop_charging()
                 elif data.get("action") == "exit_session":
                     if charging_state.is_charging:
                         charging_state.stop_charging()
-                    charging_state.reset_state()
                     print("Session exited and all state reset.")
             except asyncio.TimeoutError:
                 pass

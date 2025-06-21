@@ -257,6 +257,15 @@
             -webkit-appearance: none;
             margin: 0;
         }
+
+        .consumed-cost {
+            text-align: center;
+            margin-top: 12px;
+            font-size: 2em;
+            color: #222;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
     </style>
 </head>
 <body>
@@ -307,7 +316,9 @@
             </div>
             <div class="progress-text">Charge Level: <span id="chargeLevel">0</span>%</div>
         </div>
-
+        <div class="consumed-cost" id="consumed-cost">
+            Cost Rs: 0.00
+        </div>
         <div class="power-input-container">
             <h3 style="font-size: 1.5em; color: #333;">Set Power Units (kWh)</h3>
             <div class="spinner">
@@ -375,7 +386,10 @@
             document.getElementById('voltage').textContent = `${data.voltage} V`;
             document.getElementById('current').textContent = `${data.current} A`;
             document.getElementById('temperature').textContent = `${data.temperature} °C`;
-
+            
+            // Update consumed cost using session_cost field
+            document.getElementById('consumed-cost').textContent = `Cost Rs: ${data.session_cost.toFixed(2)}`;
+            
             const chargeLevel = data.charge_level.toFixed(1);
             document.getElementById('chargeLevel').textContent = chargeLevel;
             document.getElementById('chargeProgress').style.width = `${chargeLevel}%`;
@@ -426,9 +440,11 @@
 
         document.getElementById('controlButton').addEventListener('click', () => {
             if (isCharging) {
+                console.log('Sending stop_charging action');
                 ws.send(JSON.stringify({ action: 'stop_charging' }));
             } else {
                 const units = parseInt(document.getElementById('powerUnits').value);
+                console.log('Sending start_charging action with units:', units);
                 ws.send(JSON.stringify({ action: 'start_charging', units: units }));
             }
         });
