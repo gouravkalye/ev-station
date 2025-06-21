@@ -6,12 +6,14 @@ import time
 from datetime import datetime
 import threading  # For RFID input loop
 from mfrc522 import SimpleMFRC522
+import requests
 
 reader = SimpleMFRC522()
 
+server_url = "https://smarteva.in"
 # Add RFID authentication
 VALID_RFID_CARDS = {
-    "426036701631": "User1",
+    "426036701631": "sparks",
     "87654321": "User2"
     # Add more RFID cards as needed
 }
@@ -39,6 +41,7 @@ class EVChargingState:
         self.required_power = 0  # watt-hours, can be adjusted based on requirements
         self.estimated_time = 0  # estimated time to complete charging
         self.initial_charge_level = 0  # starting charge level
+        self.user_balance = 0  # user balance
 
     def start_charging(self, required_kwh=0):
         self.is_charging = True
@@ -203,6 +206,11 @@ async def handler(websocket):
         while True:
             state = charging_state.update()
             await websocket.send(json.dumps(state))
+            try:
+                response = requests.post(server_url + "/api/updateChargingSession/", json=state)
+                print("Server response:", response.json())
+            except Exception as e:
+                print("Failed to send charging state:", e)
 
             try:
                 message = await asyncio.wait_for(websocket.recv(), timeout=0.1)
@@ -216,7 +224,7 @@ async def handler(websocket):
                             "type": "rfid_response",
                             "authenticated": True,
                             "user": VALID_RFID_CARDS[rfid_id]
-                        }))
+                        }))                        
                     else:
                         await websocket.send(json.dumps({
                             "type": "rfid_response",

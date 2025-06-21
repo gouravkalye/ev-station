@@ -22,7 +22,10 @@ urlpatterns = [
     path('api/set_current_station/', views.set_current_station, name='set_current_station'),
     path('api/get_recent_usage/', views.get_recent_usage, name='get_recent_usage'),
     path('test-api/', views.test_api, name='test_api'),
-    
+
+    # API to get available user information against username
+    path('api/get_user_info/<str:username>/', views.get_user_info, name='get_user_info'),
+
     # Calculator URLs
     path('calculator/', views.calculator_home, name='calculator_home'),
     path('calculator/home-charging/', views.home_charging_calculator, name='home_charging_calculator'),
@@ -31,4 +34,5 @@ urlpatterns = [
     path('calculate-home-charging/', views.calculate_home_charging, name='calculate_home_charging'),
     path('calculate-public-charging/', views.calculate_public_charging, name='calculate_public_charging'),
     path('calculate-ev-comparison/', views.calculate_ev_comparison, name='calculate_ev_comparison'),
+    path('api/updateChargingSession/', views.updateChargingSession, name='updateChargingSession'),
 ]

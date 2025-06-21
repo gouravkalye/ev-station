@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from datetime import datetime
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
@@ -16,6 +16,7 @@ import json
 from celery import shared_task
 from django.utils import timezone
 from decimal import Decimal
+from django.views.decorators.csrf import csrf_exempt
 
 
 @login_required(login_url='/login/')
@@ -551,3 +552,25 @@ def get_recent_usage(request):
             'status': 'error',
             'message': str(e)
         }, status=400)
+
+def get_user_info(request, username):
+    try:
+        user = User.objects.get(username=username)
+        profile = user.profile  # Assuming a OneToOneField from User to Profile
+        return JsonResponse({'account_balance': profile.account_balance})
+    except User.DoesNotExist:
+        raise Http404("User does not exist")
+    except AttributeError:
+        return JsonResponse({'error': 'Profile not found'}, status=404)
+
+@csrf_exempt
+def updateChargingSession(request):
+    try:
+        data = json.loads(request.body)
+        print(data)
+        return JsonResponse({'status': 'success'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+        
+        
