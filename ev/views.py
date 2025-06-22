@@ -567,7 +567,37 @@ def get_user_info(request, username):
 def updateChargingSession(request):
     try:
         data = json.loads(request.body)
-        print(data)
+        # For now, use user_id=1 and station_id=1
+        from django.contrib.auth.models import User
+        from .models import Station, ChargingSession
+        from django.utils import timezone
+        user = User.objects.get(id=1)
+        station = Station.objects.get(id=1)
+        # Map fields from request body
+        energy_consumed = data.get('total_energy', 0)
+        cost = data.get('session_cost', 0)
+        is_charging = data.get('is_charging', False)
+        # Use current time for start_time
+        start_time = timezone.now()
+        status = 'in_progress' if is_charging else 'completed'
+        # Create a new ChargingSession
+        charging_session = ChargingSession.objects.create(
+            user=user,
+            station=station,
+            start_time=start_time,
+            energy_consumed=energy_consumed,
+            cost=cost,
+            status=status
+        )
+        
+        # get the user profile 
+        profile = user.profile
+        profile.account_balance -= Decimal(str(cost))
+        profile.total_energy_consumed += Decimal(str(energy_consumed))
+        profile.total_amount_spent += Decimal(str(cost))
+        profile.total_sessions += 1
+        profile.save()
+        print("Created ChargingSession:", charging_session)
         return JsonResponse({'status': 'success'})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)

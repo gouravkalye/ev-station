@@ -266,6 +266,7 @@
     let current = 15;
     let currentStation = null;
     let chargingChart = null;
+    let ws = null;
 
     // Initialize chart
     function initializeChart() {
@@ -309,7 +310,7 @@
                             display: true,
                             text: 'Voltage (V)'
                         },
-                        min: 220,
+                        min: 0,
                         max: 260
                     },
                     y1: {
@@ -320,8 +321,8 @@
                             display: true,
                             text: 'Current (A)'
                         },
-                        min: 14,
-                        max: 17,
+                        min: 0,
+                        max: 260,
                         grid: {
                             drawOnChartArea: false
                         }
@@ -329,6 +330,46 @@
                 }
             }
         });
+    }
+
+    // WebSocket for live charging session data
+    function setupWebSocket() {
+        ws = new WebSocket('wss://ws.smarteva.in');
+        ws.onopen = function() {
+            console.log('WebSocket connection established');
+        };
+        ws.onmessage = function(event) {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.is_charging) {
+                    // Update session display
+                    $('#session-duration').text(data.elapsed_time || '00:00:00');
+                    $('#energy-used').text(`${data.total_energy || '0.0'} kWh`);
+                    $('#session-cost').text(`₹${data.session_cost || '0.00'}`);
+
+                    // Optionally update chart
+                    const time = data.timestamp || new Date().toLocaleTimeString();
+                    chargingChart.data.labels.push(time);
+                    chargingChart.data.datasets[0].data.push(data.voltage || 0);
+                    chargingChart.data.datasets[1].data.push(data.current || 0);
+                    if (chargingChart.data.labels.length > 20) {
+                        chargingChart.data.labels.shift();
+                        chargingChart.data.datasets[0].data.shift();
+                        chargingChart.data.datasets[1].data.shift();
+                    }
+                    chargingChart.update('none');
+                }
+            } catch (e) {
+                console.error('WebSocket message error:', e);
+            }
+        };
+        ws.onerror = function(error) {
+            console.error('WebSocket error:', error);
+        };
+        ws.onclose = function() {
+            console.warn('WebSocket closed. Reconnecting in 5s...');
+            setTimeout(setupWebSocket, 5000);
+        };
     }
 
     // Update station information
@@ -454,9 +495,6 @@
     // Update charging display
     function updateChargingDisplay(data) {
         if (data.is_charging) {
-            voltage = 230 + Math.random() * 20;
-            current = 15 + Math.random();
-            
             $('#session-duration').text(data.duration || '00:00:00');
             $('#energy-used').text(`${data.energy_used || '0.0'} kWh`);
             $('#session-cost').text(`₹${data.cost || '0.00'}`);
@@ -464,8 +502,8 @@
             // Update chart
             const time = new Date().toLocaleTimeString();
             chargingChart.data.labels.push(time);
-            chargingChart.data.datasets[0].data.push(voltage);
-            chargingChart.data.datasets[1].data.push(current);
+            chargingChart.data.datasets[0].data.push(data.voltage);
+            chargingChart.data.datasets[1].data.push(data.current);
             
             if (chargingChart.data.labels.length > 20) {
                 chargingChart.data.labels.shift();
@@ -480,6 +518,7 @@
     // Initialize everything when document is ready
     $(document).ready(function() {
         initializeChart();
+        setupWebSocket();
         
         // Set up periodic updates
         setInterval(function() {

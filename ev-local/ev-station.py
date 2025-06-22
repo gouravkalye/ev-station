@@ -58,6 +58,13 @@ class EVChargingState:
         self.is_charging = False
         self.current_power = 0
         self.current = 0
+        try:
+            state = self.update()
+            print(state)
+            response = requests.post(server_url + "/api/updateChargingSession/", json=state)
+            print("Server response:", response.json())
+        except Exception as e:
+            print("Failed to send charging state:", e)
         print("Charging stopped.")
 
     def reset_state(self):
@@ -211,12 +218,6 @@ async def handler(websocket):
         while True:
             state = charging_state.update()
             await websocket.send(json.dumps(state))
-            try:
-                response = requests.post(server_url + "/api/updateChargingSession/", json=state)
-                print("Server response:", response.json())
-            except Exception as e:
-                print("Failed to send charging state:", e)
-
             try:
                 message = await asyncio.wait_for(websocket.recv(), timeout=0.1)
                 data = json.loads(message)
