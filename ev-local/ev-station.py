@@ -7,6 +7,7 @@ from datetime import datetime
 import threading  # For RFID input loop
 from mfrc522 import SimpleMFRC522
 import requests
+import subprocess
 
 reader = SimpleMFRC522()
 per_unit_cost = 10  # Cost per kWh for charging
@@ -53,6 +54,8 @@ class EVChargingState:
         self.current_power = self.max_power
         self.current = (self.max_power / self.voltage) * simulate_fast_charge_current
         print(f"Charging started with required power: {self.required_power} Wh")
+        print("Turning relay ON")
+        subprocess.run(['sudo', 'raspi-gpio', 'set', '4', 'op', 'dl'])
 
     def stop_charging(self):
         self.is_charging = False
@@ -66,6 +69,8 @@ class EVChargingState:
         except Exception as e:
             print("Failed to send charging state:", e)
         print("Charging stopped.")
+        print("Turning relay OFF")
+        subprocess.run(['sudo', 'raspi-gpio', 'set', '4', 'op', 'dh'])
 
     def reset_state(self):
         """Reset all charging state to initial values"""
