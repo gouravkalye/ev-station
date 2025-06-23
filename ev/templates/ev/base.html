@@ -45,7 +45,17 @@
                         <a class="nav-link" href="{% url 'home' %}">Home</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'station' %}">Find Station</a>
+                        <a class="nav-link" href="{% url 'station' %}">Stations</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="calculatorDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-calculator me-1"></i>Calculators
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="calculatorDropdown">
+                            <li><a class="dropdown-item" href="{% url 'home_charging_calculator' %}">Home Charging</a></li>
+                            <li><a class="dropdown-item" href="{% url 'public_charging_calculator' %}">Public Charging</a></li>
+                            <li><a class="dropdown-item" href="{% url 'ev_comparison_calculator' %}">EV Comparison</a></li>
+                        </ul>
                     </li>
                 </ul>
                 <ul class="navbar-nav">

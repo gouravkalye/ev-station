@@ -1,0 +1,237 @@
+{% extends 'ev/base.html' %}
+{% load static %}
+
+{% block title %}EV Comparison Calculator - EV Charger{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-calculator me-2"></i>
+                        EV vs Conventional Vehicle Cost Comparison
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form id="evComparisonForm">
+                        <!-- Vehicle Segment -->
+                        <div class="mb-3">
+                            <label for="vehicleSegment" class="form-label">
+                                Vehicle Segment
+                                <i class="bi bi-info-circle" data-bs-toggle="tooltip" title="Select your vehicle type"></i>
+                            </label>
+                            <select class="form-select" id="vehicleSegment" required>
+                                <option value="">Select</option>
+                                {% for segment in vehicle_segments %}
+                                <option value="{{ segment.id }}" 
+                                        data-battery="{{ segment.battery_capacity }}"
+                                        data-range="{{ segment.average_range }}">
+                                    {{ segment.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Annual Journey Distance -->
+                        <div class="mb-3">
+                            <label for="annualDistance" class="form-label">
+                                Annual Journey Distance
+                                <i class="bi bi-info-circle" data-bs-toggle="tooltip" title="Total distance you travel in a year"></i>
+                            </label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="annualDistance" required step="1" min="0">
+                                <span class="input-group-text">km</span>
+                            </div>
+                        </div>
+
+                        <!-- State -->
+                        <div class="mb-3">
+                            <label for="state" class="form-label">
+                                State
+                                <i class="bi bi-info-circle" data-bs-toggle="tooltip" title="Select your state for electricity tariffs"></i>
+                            </label>
+                            <select class="form-select" id="state" required>
+                                <option value="">Select</option>
+                                {% for state in states %}
+                                <option value="{{ state.id }}" 
+                                        data-domestic="{{ state.domestic_tariff }}"
+                                        data-public="{{ state.public_charging_cost }}">
+                                    {{ state.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Charging Split -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="homeCharging" class="form-label">
+                                        Home Charging %
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" title="Percentage of charging done at home"></i>
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="homeCharging" required step="1" min="0" max="100" value="80">
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="publicCharging" class="form-label">
+                                        Public Charging %
+                                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" title="Percentage of charging done at public stations"></i>
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="publicCharging" required step="1" min="0" max="100" value="20">
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Conventional Vehicle -->
+                        <div class="mb-3">
+                            <label for="conventionalVehicle" class="form-label">
+                                Comparing Vehicle
+                                <i class="bi bi-info-circle" data-bs-toggle="tooltip" title="Select the conventional vehicle for comparison"></i>
+                            </label>
+                            <select class="form-select" id="conventionalVehicle" required>
+                                <option value="">Select</option>
+                                <option value="petrol">Petrol Vehicle</option>
+                                <option value="diesel">Diesel Vehicle</option>
+                            </select>
+                        </div>
+
+                        <!-- Conventional Vehicle Mileage -->
+                        <div class="mb-3">
+                            <label for="conventionalMileage" class="form-label">
+                                Conventional Vehicle Mileage
+                                <i class="bi bi-info-circle" data-bs-toggle="tooltip" title="Average mileage of the conventional vehicle"></i>
+                            </label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="conventionalMileage" required step="0.1" min="0">
+                                <span class="input-group-text">km/L</span>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Calculate Comparison</button>
+                    </form>
+
+                    <!-- Results -->
+                    <div id="results" class="mt-4" style="display: none;">
+                        <h5>Annual Cost Comparison</h5>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="card-title">EV Total Cost</h6>
+                                        <p class="card-text h3 text-primary">₹<span id="evCost">0.00</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Conventional Cost</h6>
+                                        <p class="card-text h3 text-danger">₹<span id="conventionalCost">0.00</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Annual Savings</h6>
+                                        <p class="card-text h3 text-success">₹<span id="savings">0.00</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('evComparisonForm');
+    const homeCharging = document.getElementById('homeCharging');
+    const publicCharging = document.getElementById('publicCharging');
+    
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+
+    // Sync home and public charging percentages
+    homeCharging.addEventListener('input', function() {
+        const homeValue = parseInt(this.value) || 0;
+        publicCharging.value = Math.max(0, Math.min(100, 100 - homeValue));
+    });
+
+    publicCharging.addEventListener('input', function() {
+        const publicValue = parseInt(this.value) || 0;
+        homeCharging.value = Math.max(0, Math.min(100, 100 - publicValue));
+    });
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const data = {
+            vehicle_segment: document.getElementById('vehicleSegment').value,
+            annual_distance: document.getElementById('annualDistance').value,
+            state: document.getElementById('state').value,
+            home_charging_percentage: homeCharging.value,
+            public_charging_percentage: publicCharging.value,
+            conventional_mileage: document.getElementById('conventionalMileage').value
+        };
+
+        fetch('/calculate-ev-comparison/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('results').style.display = 'block';
+                document.getElementById('evCost').textContent = data.ev_total_cost.toFixed(2);
+                document.getElementById('conventionalCost').textContent = data.conventional_cost.toFixed(2);
+                document.getElementById('savings').textContent = data.savings.toFixed(2);
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error.message);
+        });
+    });
+
+    // Helper function to get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
+{% endblock %}
+{% endblock %} 

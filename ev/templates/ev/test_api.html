@@ -56,6 +56,20 @@
                         <h5>API Response</h5>
                         <pre id="apiResponse" class="bg-light p-3 rounded">No response yet</pre>
                     </div>
+
+                    <!-- Test Set Current Station -->
+                    <div class="test-set-current-station mt-4">
+                        <h5>Test Set Current Station</h5>
+                        <div class="mb-3">
+                            <label for="testStationId" class="form-label">Station ID</label>
+                            <input type="number" class="form-control" id="testStationId" placeholder="Enter station ID">
+                        </div>
+                        <button id="testSetCurrentStation" class="btn btn-primary">
+                            <i class="bi bi-gear me-2"></i>
+                            Test Set Current Station
+                        </button>
+                        <pre id="setCurrentStationResponse" class="bg-light p-3 rounded mt-3">No response yet</pre>
+                    </div>
                 </div>
             </div>
         </div>
@@ -116,6 +130,33 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => {
             apiResponse.textContent = `Error: ${error.message}`;
+        });
+    });
+
+    // Test Set Current Station
+    document.getElementById('testSetCurrentStation').addEventListener('click', function() {
+        const stationId = document.getElementById('testStationId').value;
+        if (!stationId) {
+            alert('Please enter a station ID');
+            return;
+        }
+
+        fetch('/api/set_current_station/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                station_id: stationId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('setCurrentStationResponse').textContent = JSON.stringify(data, null, 2);
+        })
+        .catch(error => {
+            document.getElementById('setCurrentStationResponse').textContent = `Error: ${error.message}`;
         });
     });
 

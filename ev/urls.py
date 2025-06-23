@@ -18,5 +18,21 @@ urlpatterns = [
     path('logout/', views.user_logout, name='logout'),
     path('register/', views.register, name='register'),
     path('api/update_charging_status/', views.update_charging_status, name='update_charging_status'),
+    path('api/charging/', views.charging_api, name='charging_api'),
+    path('api/set_current_station/', views.set_current_station, name='set_current_station'),
+    path('api/get_recent_usage/', views.get_recent_usage, name='get_recent_usage'),
     path('test-api/', views.test_api, name='test_api'),
+
+    # API to get available user information against username
+    path('api/get_user_info/<str:username>/', views.get_user_info, name='get_user_info'),
+
+    # Calculator URLs
+    path('calculator/', views.calculator_home, name='calculator_home'),
+    path('calculator/home-charging/', views.home_charging_calculator, name='home_charging_calculator'),
+    path('calculator/public-charging/', views.public_charging_calculator, name='public_charging_calculator'),
+    path('calculator/ev-comparison/', views.ev_comparison_calculator, name='ev_comparison_calculator'),
+    path('calculate-home-charging/', views.calculate_home_charging, name='calculate_home_charging'),
+    path('calculate-public-charging/', views.calculate_public_charging, name='calculate_public_charging'),
+    path('calculate-ev-comparison/', views.calculate_ev_comparison, name='calculate_ev_comparison'),
+    path('api/updateChargingSession/', views.updateChargingSession, name='updateChargingSession'),
 ]

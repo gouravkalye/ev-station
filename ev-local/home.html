@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>EV Charging Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #007BFF;
+            --success: #28a745;
+            --warning: #FFC107;
+            --danger: #DC3545;
+            --bg: #f2f2f2;
+            --card: #fff;
+            --text: #222;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 2px;
+            font-family: 'Roboto', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .dashboard {
+            max-width: 100%;
+            margin: auto;
+            background: var(--card);
+            padding: 8px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            font-size: 1.4em;
+            color: var(--primary);
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .status-box {
+            background: var(--card);
+            padding: 6px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+            transition: transform 0.2s;
+        }
+
+        .status-box:hover {
+            transform: translateY(-2px);
+        }
+
+        .status-box i {
+            font-size: 1.2em;
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+
+        .status-box h3 {
+            font-size: 0.7em;
+            color: #666;
+            text-transform: uppercase;
+            margin: 0;
+        }
+
+        .status-box .value {
+            font-size: 1em;
+            font-weight: bold;
+            margin-top: 2px;
+        }
+
+        .status-box.eta {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .status-box.eta i {
+            color: white;
+        }
+
+        .status-box.eta h3 {
+            color: rgba(255,255,255,0.9);
+        }
+
+        .status-box.target {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .status-box.target i {
+            color: white;
+        }
+
+        .status-box.target h3 {
+            color: rgba(255,255,255,0.9);
+        }
+
+        .progress-container {
+            margin: 8px 0;
+            background: #fff;
+            padding: 8px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        }
+
+        .progress-bar {
+            height: 15px;
+            background: #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--success));
+            width: 0%;
+            transition: width 0.4s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            margin-top: 4px;
+            font-size: 0.8em;
+            color: #444;
+        }
+
+        .control-button {
+            display: block;
+            margin: 8px auto;
+            padding: 8px 20px;
+            font-size: 0.9em;
+            border: none;
+            border-radius: 20px;
+            background: var(--success);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .control-button.stop {
+            background: var(--danger);
+        }
+
+        .control-button:hover {
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+            transform: scale(1.02);
+        }
+
+        .charging-animation {
+            text-align: center;
+            font-size: 1.5em;
+            color: var(--primary);
+            margin: 8px 0;
+        }
+
+        .charging-animation i {
+            animation: pulse 1s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.1); }
+        }
+
+        .timestamp {
+            text-align: center;
+            font-size: 0.7em;
+            color: #777;
+            margin-top: 6px;
+        }
+
+        .error-message {
+            background: rgba(220, 53, 69, 0.1);
+            color: var(--danger);
+            padding: 6px;
+            text-align: center;
+            margin-top: 6px;
+            border-radius: 6px;
+            display: none;
+            font-size: 0.8em;
+        }
+
+        .temperature-warning {
+            color: var(--warning);
+        }
+
+        .power-input-container {
+            padding: 4px;
+            margin: 4px auto;
+            max-width: 350px;
+            text-align: center;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        }
+
+        .spinner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .spinner-btn {
+            width: 60px;
+            height: 60px;
+            font-size: 2.5em;
+            font-weight: bold;
+            color: var(--primary);
+            background: #f0f0f0;
+            border: 2px solid #ddd;
+            border-radius: 50%;
+            cursor: pointer;
+            line-height: 55px;
+            transition: all 0.2s ease;
+        }
+
+        .spinner-btn:hover {
+            background: #e0e0e0;
+            transform: scale(1.03);
+        }
+
+        .spinner-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #powerUnits {
+            width: 120px;
+            height: 60px;
+            font-size: 2.5em;
+            text-align: center;
+            border: none;
+            background: transparent;
+            font-weight: bold;
+            color: #333;
+            -moz-appearance: textfield;
+        }
+
+        #powerUnits::-webkit-outer-spin-button,
+        #powerUnits::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .consumed-cost {
+            text-align: center;
+            margin-top: 12px;
+            font-size: 2em;
+            color: #222;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <h1><i class="fas fa-charging-station"></i> EV Charging Dashboard <span style="font-size: 0.6em; color: var(--warning);">[FAST DEMO MODE]</span></h1>
+
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 6px; border-radius: 6px; margin-bottom: 8px; text-align: center; font-size: 0.7em;">
+            <i class="fas fa-info-circle"></i> 
+            <strong>Demo Mode:</strong> Fast charging (~2 min). Set target kWh or charge to full.
+        </div>
+
+        <div class="status-grid">
+            <div class="status-box">
+                <i class="fas fa-bolt"></i>
+                <h3>Current Power</h3>
+                <div class="value" id="currentPower">0 W</div>
+            </div>
+            <div class="status-box">
+                <i class="fas fa-battery-full"></i>
+                <h3>Total Energy</h3>
+                <div class="value" id="totalEnergy">0 kWh</div>
+            </div>
+            <div class="status-box">
+                <i class="fas fa-clock"></i>
+                <h3>Time Elapsed</h3>
+                <div class="value" id="timeElapsed">0:00</div>
+            </div>
+            <div class="status-box">
+                <i class="fas fa-plug"></i>
+                <h3>Voltage</h3>
+                <div class="value" id="voltage">0 V</div>
+            </div>
+            <div class="status-box">
+                <i class="fas fa-battery-half"></i>
+                <h3>Current</h3>
+                <div class="value" id="current">0 A</div>
+            </div>
+            <div class="status-box">
+                <i class="fas fa-temperature-high"></i>
+                <h3>Temperature</h3>
+                <div class="value" id="temperature">0 °C</div>
+            </div>
+        </div>
+
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-fill" id="chargeProgress"></div>
+            </div>
+            <div class="progress-text">Charge Level: <span id="chargeLevel">0</span>%</div>
+        </div>
+        <div class="consumed-cost" id="consumed-cost">
+            Cost Rs: 0.00
+        </div>
+        <div class="power-input-container">
+            <h3 style="font-size: 1.5em; color: #333;">Set Power Units (kWh)</h3>
+            <div class="spinner">
+                <button id="decrementUnits" class="spinner-btn">-</button>
+                <input type="number" id="powerUnits" value="0" min="0" max="100" readonly>
+                <button id="incrementUnits" class="spinner-btn">+</button>
+            </div>
+            
+        </div>
+        <div style="display: flex; justify-content: center; gap: 10px; margin: 6px 0;">
+             <button class="control-button" id="controlButton">Start Charging</button>
+             <button class="control-button" id="exitButton" style="background: #6c757d;">Exit</button>
+        </div>
+
+        <div class="charging-animation" id="chargingAnimation" style="display: none;">
+            <i class="fas fa-bolt"></i> Charging...
+        </div>
+
+        
+
+        <div class="error-message" id="errorMessage"></div>
+        <div class="timestamp" id="timestamp"></div>
+    </div>
+
+    <script>
+        const ws = new WebSocket("ws://localhost:6789");
+        let isCharging = false;
+
+        const powerUnitsInput = document.getElementById('powerUnits');
+        const decrementBtn = document.getElementById('decrementUnits');
+        const incrementBtn = document.getElementById('incrementUnits');
+
+        decrementBtn.addEventListener('click', () => {
+            let currentValue = parseInt(powerUnitsInput.value);
+            if (currentValue > parseInt(powerUnitsInput.min)) {
+                powerUnitsInput.value = currentValue - 1;
+            }
+        });
+
+        incrementBtn.addEventListener('click', () => {
+            let currentValue = parseInt(powerUnitsInput.value);
+            if (currentValue < parseInt(powerUnitsInput.max)) {
+                powerUnitsInput.value = currentValue + 1;
+            }
+        });
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        function formatPower(watts) {
+            return watts >= 1000 ? `${(watts / 1000).toFixed(1)} kW` : `${watts} W`;
+        }
+
+        function formatEnergy(wattHours) {
+            return `${(wattHours / 1000).toFixed(2)} kWh`;
+        }
+
+        function updateUI(data) {
+            document.getElementById('currentPower').textContent = formatPower(data.current_power);
+            document.getElementById('totalEnergy').textContent = formatEnergy(data.total_energy);
+            document.getElementById('timeElapsed').textContent = formatTime(data.elapsed_time);
+            document.getElementById('voltage').textContent = `${data.voltage} V`;
+            document.getElementById('current').textContent = `${data.current} A`;
+            document.getElementById('temperature').textContent = `${data.temperature} °C`;
+            
+            // Update consumed cost using session_cost field
+            document.getElementById('consumed-cost').textContent = `Cost Rs: ${data.session_cost.toFixed(2)}`;
+            
+            const chargeLevel = data.charge_level.toFixed(1);
+            document.getElementById('chargeLevel').textContent = chargeLevel;
+            document.getElementById('chargeProgress').style.width = `${chargeLevel}%`;
+
+            if (data.temperature > 35) {
+                document.getElementById('temperature').classList.add('temperature-warning');
+            } else {
+                document.getElementById('temperature').classList.remove('temperature-warning');
+            }
+
+            document.getElementById('timestamp').textContent = `Last update: ${data.timestamp}`;
+
+            const btn = document.getElementById('controlButton');
+            const anim = document.getElementById('chargingAnimation');
+
+            if (data.is_charging) {
+                btn.textContent = "Stop Charging";
+                btn.classList.add('stop');
+                anim.style.display = 'block';
+                isCharging = true;
+                powerUnitsInput.disabled = true;
+                decrementBtn.disabled = true;
+                incrementBtn.disabled = true;
+            } else {
+                btn.textContent = "Start Charging";
+                btn.classList.remove('stop');
+                anim.style.display = 'none';
+                isCharging = false;
+                powerUnitsInput.disabled = false;
+                decrementBtn.disabled = false;
+                incrementBtn.disabled = false;
+            }
+        }
+
+        ws.onopen = () => {
+            document.getElementById('errorMessage').style.display = 'none';
+        };
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            updateUI(data);
+        };
+
+        ws.onerror = () => {
+            document.getElementById('errorMessage').textContent = "WebSocket connection failed.";
+            document.getElementById('errorMessage').style.display = 'block';
+        };
+
+        document.getElementById('controlButton').addEventListener('click', () => {
+            if (isCharging) {
+                console.log('Sending stop_charging action');
+                ws.send(JSON.stringify({ action: 'stop_charging' }));
+            } else {
+                const units = parseInt(document.getElementById('powerUnits').value);
+                console.log('Sending start_charging action with units:', units);
+                ws.send(JSON.stringify({ action: 'start_charging', units: units }));
+            }
+        });
+        document.getElementById("exitButton").addEventListener("click", () => {
+            if (!isCharging) {
+                ws.send(JSON.stringify({ action: 'exit_session' }));
+                setTimeout(() => {
+                    window.location.href = "login.html";
+                }, 100);
+            } else {
+                alert("Please stop charging before exiting.");
+            }
+        });
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,219 @@
+{% extends 'ev/base.html' %}
+{% load static %}
+
+{% block title %}Public Charging Calculator - EV Charger{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-lightning-charge me-2"></i>
+                        Public Charging Cost Calculator
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form id="publicChargingForm">
+                        <!-- Vehicle Segment -->
+                        <div class="mb-3">
+                            <label for="vehicleSegment" class="form-label">
+                                Vehicle Segment
+                                <i class="bi bi-info-circle" data-bs-toggle="tooltip" title="Select your vehicle type"></i>
+                            </label>
+                            <select class="form-select" id="vehicleSegment" required>
+                                <option value="">Select</option>
+                                {% for segment in vehicle_segments %}
+                                <option value="{{ segment.id }}" 
+                                        data-battery="{{ segment.battery_capacity }}">
+                                    {{ segment.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Cost per kWh -->
+                        <div class="mb-3">
+                            <label for="costPerKwh" class="form-label">
+                                Cost per kWh
+                                <i class="bi bi-info-circle" data-bs-toggle="tooltip" title="Cost per unit at public charging station"></i>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">₹</span>
+                                <input type="number" class="form-control" id="costPerKwh" required step="0.01" min="0">
+                            </div>
+                        </div>
+
+                        <!-- Battery Capacity -->
+                        <div class="mb-3">
+                            <label for="batteryCapacity" class="form-label">
+                                Battery Capacity
+                                <i class="bi bi-info-circle" data-bs-toggle="tooltip" title="Vehicle's battery capacity in kWh"></i>
+                            </label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="batteryCapacity" required step="0.1" min="0">
+                                <span class="input-group-text">kWh</span>
+                            </div>
+                        </div>
+
+                        <!-- Select Distance or Battery Level -->
+                        <div class="mb-3">
+                            <label for="chargingType" class="form-label">
+                                Select Distance or Battery Level
+                                <i class="bi bi-info-circle" data-bs-toggle="tooltip" title="Choose how you want to calculate charging needs"></i>
+                            </label>
+                            <select class="form-select" id="chargingType" required>
+                                <option value="">Select</option>
+                                <option value="distance">By Distance</option>
+                                <option value="battery">By Battery Level</option>
+                            </select>
+                        </div>
+
+                        <!-- Range -->
+                        <div class="mb-3" id="rangeField" style="display: none;">
+                            <label for="range" class="form-label">
+                                Range
+                                <i class="bi bi-info-circle" data-bs-toggle="tooltip" title="Distance you need to travel"></i>
+                            </label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="range" step="1" min="0">
+                                <span class="input-group-text">km</span>
+                            </div>
+                        </div>
+
+                        <!-- Public Charger Power -->
+                        <div class="mb-3">
+                            <label for="chargerPower" class="form-label">
+                                Public Charger Power
+                                <i class="bi bi-info-circle" data-bs-toggle="tooltip" title="Power rating of the public charger"></i>
+                            </label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="chargerPower" required step="0.1" min="0">
+                                <span class="input-group-text">kW</span>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Calculate Total Cost</button>
+                    </form>
+
+                    <!-- Results -->
+                    <div id="results" class="mt-4" style="display: none;">
+                        <h5>Results</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Charging Cost</h6>
+                                        <p class="card-text h3 text-primary">₹<span id="chargingCost">0.00</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Charging Time</h6>
+                                        <p class="card-text h3 text-primary"><span id="chargingTime">0</span> hours</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('publicChargingForm');
+    const vehicleSegment = document.getElementById('vehicleSegment');
+    const batteryCapacity = document.getElementById('batteryCapacity');
+    const chargingType = document.getElementById('chargingType');
+    const rangeField = document.getElementById('rangeField');
+    
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+
+    // Auto-fill battery capacity when vehicle segment changes
+    vehicleSegment.addEventListener('change', function() {
+        const selected = this.options[this.selectedIndex];
+        if (selected.value) {
+            batteryCapacity.value = selected.dataset.battery;
+        } else {
+            batteryCapacity.value = '';
+        }
+    });
+
+    // Show/hide range field based on charging type
+    chargingType.addEventListener('change', function() {
+        if (this.value === 'distance') {
+            rangeField.style.display = 'block';
+            document.getElementById('range').required = true;
+        } else {
+            rangeField.style.display = 'none';
+            document.getElementById('range').required = false;
+        }
+    });
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const data = {
+            vehicle_segment: vehicleSegment.value,
+            battery_capacity: batteryCapacity.value,
+            charger_power: document.getElementById('chargerPower').value,
+            cost_per_kwh: document.getElementById('costPerKwh').value
+        };
+
+        if (chargingType.value === 'distance') {
+            data.range = document.getElementById('range').value;
+        }
+
+        fetch('/calculate-public-charging/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('results').style.display = 'block';
+                document.getElementById('chargingCost').textContent = data.charging_cost.toFixed(2);
+                document.getElementById('chargingTime').textContent = data.charging_time.toFixed(1);
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error.message);
+        });
+    });
+
+    // Helper function to get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
+{% endblock %}
+{% endblock %} 

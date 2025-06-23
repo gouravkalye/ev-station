@@ -1,18 +1,22 @@
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from datetime import datetime
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from .models import Station, UserProfile, ChargingSession, UserPreferences
+from .models import Station, UserProfile, ChargingSession, UserPreferences, VehicleSegment, State
 import random
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 from decimal import Decimal
 from django.views.decorators.csrf import csrf_exempt
 import json
+from celery import shared_task
+from django.utils import timezone
+from decimal import Decimal
+from django.views.decorators.csrf import csrf_exempt
 
 
 @login_required(login_url='/login/')
@@ -322,3 +326,281 @@ def update_charging_status(request):
 def test_api(request):
     stations = Station.objects.all().order_by('name')
     return render(request, 'ev/test_api.html', {'stations': stations})
+
+
+@login_required
+def start_charging(request, station_id):
+    try:
+        station = Station.objects.get(id=station_id, is_available=True)
+        profile = request.user.profile
+        
+        # Check if user has sufficient balance
+        if profile.account_balance < Decimal('10.00'):
+            messages.error(request, 'Insufficient balance. Please recharge your account.')
+            return redirect('station')
+        
+        # Create new charging session
+        session = ChargingSession.objects.create(
+            user=request.user,
+            station=station,
+            start_time=timezone.now(),
+            status='in_progress'
+        )
+        
+        # Update station availability
+        station.is_available = False
+        station.save()
+        
+        # Start Celery task
+        handle_charging_session.delay(session.id)
+        
+        messages.success(request, f'Charging started at {station.name}')
+        return redirect('home')
+        
+    except Station.DoesNotExist:
+        messages.error(request, 'Station not available')
+        return redirect('station')
+    
+@login_required
+def stop_charging(request, session_id):
+    try:
+        session = ChargingSession.objects.get(id=session_id, user=request.user, status='in_progress')
+        stop_charging_session.delay(session.id)
+        messages.success(request, 'Charging session stopped successfully')
+        return redirect('user_profile')
+    except ChargingSession.DoesNotExist:
+        messages.error(request, 'Charging session not found')
+        return redirect('user_profile')
+    
+@csrf_exempt
+@require_POST
+def charging_api(request):
+    try:
+        data = json.loads(request.body)
+        action = data.get('action')
+        session_id = data.get('session_id')
+
+        if action == 'start':
+            station_id = data.get('station_id')
+            response_data = start_charging(request, station_id)
+            return JsonResponse(response_data)  # This must be a dict
+        elif action == 'stop':
+            stop_charging_session.delay(session_id)
+            return JsonResponse({'status': 'success', 'message': 'Charging stopped'})
+        else:
+            return JsonResponse({'status': 'error', 'message': 'Invalid action'}, status=400)
+
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+def calculator_home(request):
+    return render(request, 'ev/calculator_home.html')
+
+def home_charging_calculator(request):
+    vehicle_segments = VehicleSegment.objects.all()
+    states = State.objects.all()
+    context = {
+        'vehicle_segments': vehicle_segments,
+        'states': states,
+    }
+    return render(request, 'ev/home_charging_calculator.html', context)
+
+def public_charging_calculator(request):
+    vehicle_segments = VehicleSegment.objects.all()
+    context = {
+        'vehicle_segments': vehicle_segments,
+    }
+    return render(request, 'ev/public_charging_calculator.html', context)
+
+def ev_comparison_calculator(request):
+    vehicle_segments = VehicleSegment.objects.all()
+    states = State.objects.all()
+    context = {
+        'vehicle_segments': vehicle_segments,
+        'states': states,
+    }
+    return render(request, 'ev/ev_comparison_calculator.html', context)
+
+@require_POST
+def calculate_home_charging(request):
+    try:
+        data = json.loads(request.body)
+        vehicle_segment = VehicleSegment.objects.get(id=data['vehicle_segment'])
+        state = State.objects.get(id=data['state'])
+        battery_capacity = Decimal(str(data['battery_capacity']))  # Convert to string first
+        distance = Decimal(str(data['distance']))  # Convert to string first
+        
+        # Calculate charging cost
+        charging_cost = battery_capacity * state.domestic_tariff
+        charging_time = battery_capacity / Decimal('7.2')  # Convert 7.2 to Decimal
+        
+        return JsonResponse({
+            'success': True,
+            'charging_cost': float(charging_cost),
+            'charging_time': float(charging_time),
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@require_POST
+def calculate_public_charging(request):
+    try:
+        data = json.loads(request.body)
+        vehicle_segment = VehicleSegment.objects.get(id=data['vehicle_segment'])
+        battery_capacity = Decimal(data['battery_capacity'])
+        charger_power = Decimal(data['charger_power'])
+        cost_per_kwh = Decimal(data['cost_per_kwh'])
+        
+        # Calculate charging cost and time
+        charging_cost = battery_capacity * cost_per_kwh
+        charging_time = battery_capacity / charger_power
+        
+        return JsonResponse({
+            'success': True,
+            'charging_cost': float(charging_cost),
+            'charging_time': float(charging_time),
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@require_POST
+def calculate_ev_comparison(request):
+    try:
+        data = json.loads(request.body)
+        vehicle_segment = VehicleSegment.objects.get(id=data['vehicle_segment'])
+        state = State.objects.get(id=data['state'])
+        annual_distance = Decimal(data['annual_distance'])
+        home_charging_percentage = Decimal(data['home_charging_percentage'])
+        public_charging_percentage = Decimal(data['public_charging_percentage'])
+        conventional_mileage = Decimal(data['conventional_mileage'])
+        
+        # Calculate costs
+        total_energy_needed = (annual_distance / vehicle_segment.average_range) * vehicle_segment.battery_capacity
+        home_charging_cost = (total_energy_needed * home_charging_percentage / 100) * state.domestic_tariff
+        public_charging_cost = (total_energy_needed * public_charging_percentage / 100) * state.public_charging_cost
+        
+        # Calculate conventional fuel cost (assuming ₹100 per liter)
+        fuel_cost = (annual_distance / conventional_mileage) * 100
+        
+        return JsonResponse({
+            'success': True,
+            'ev_total_cost': float(home_charging_cost + public_charging_cost),
+            'conventional_cost': float(fuel_cost),
+            'savings': float(fuel_cost - (home_charging_cost + public_charging_cost)),
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@csrf_exempt
+@require_POST
+def set_current_station(request):
+    try:
+        data = json.loads(request.body)
+        station_id = data.get('station_id')
+        
+        # Get the station details
+        station = Station.objects.get(id=station_id)
+        
+        response_data = {
+            'status': 'success',
+            'data': {
+                'station_id': station.id,
+                'station_name': station.name,
+                'station_address': station.address,
+                'station_city': station.city,
+                'station_state': station.state,
+                'is_available': station.is_available
+            }
+        }
+        return JsonResponse(response_data)
+        
+    except Station.DoesNotExist:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Station not found'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=400)
+
+@csrf_exempt
+@login_required
+def get_recent_usage(request):
+    try:
+        # Get the last 5 charging sessions for the current user
+        recent_sessions = ChargingSession.objects.filter(
+            user=request.user
+        ).order_by('-start_time')[:5]
+
+        logs = []
+        for session in recent_sessions:
+            logs.append({
+                'time': session.start_time.strftime('%Y-%m-%d %H:%M:%S'),
+                'energy': float(session.energy_consumed),
+                'cost': float(session.cost)
+            })
+
+        return JsonResponse({
+            'status': 'success',
+            'logs': logs
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=400)
+
+def get_user_info(request, username):
+    try:
+        user = User.objects.get(username=username)
+        profile = user.profile  # Assuming a OneToOneField from User to Profile
+        return JsonResponse({'account_balance': profile.account_balance})
+    except User.DoesNotExist:
+        raise Http404("User does not exist")
+    except AttributeError:
+        return JsonResponse({'error': 'Profile not found'}, status=404)
+
+@csrf_exempt
+def updateChargingSession(request):
+    try:
+        data = json.loads(request.body)
+        # For now, use user_id=1 and station_id=1
+        from django.contrib.auth.models import User
+        from .models import Station, ChargingSession
+        from django.utils import timezone
+        user = User.objects.get(id=1)
+        station = Station.objects.get(id=1)
+        # Map fields from request body
+        energy_consumed = data.get('total_energy', 0)
+        cost = data.get('session_cost', 0)
+        is_charging = data.get('is_charging', False)
+        # Use current time for start_time
+        start_time = timezone.now()
+        status = 'in_progress' if is_charging else 'completed'
+        # Create a new ChargingSession
+        charging_session = ChargingSession.objects.create(
+            user=user,
+            station=station,
+            start_time=start_time,
+            energy_consumed=energy_consumed,
+            cost=cost,
+            status=status
+        )
+        
+        # get the user profile 
+        profile = user.profile
+        profile.account_balance -= Decimal(str(cost))
+        profile.total_energy_consumed += Decimal(str(energy_consumed))
+        profile.total_amount_spent += Decimal(str(cost))
+        profile.total_sessions += 1
+        profile.save()
+        print("Created ChargingSession:", charging_session)
+        return JsonResponse({'status': 'success'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+        
+        
