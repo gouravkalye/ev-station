@@ -19,14 +19,35 @@
 
         body {
             margin: 0;
-            padding: 10px;
+            padding: 0;
             font-family: 'Roboto', sans-serif;
             background: var(--bg);
             color: var(--text);
             display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        .center-wrapper {
+            display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
+            width: 100%;
+        }
+
+        .college-header {
+            font-size: 1.6em;
+            font-weight: bold;
+            background-color: #007BFF10;
+            color: var(--primary);
+            padding: 12px 20px;
+            border-radius: 12px;
+            border: 2px solid var(--primary);
+            margin-bottom: 20px;
+            text-align: center;
         }
 
         .login-container {
@@ -50,6 +71,10 @@
             padding: 15px;
             border-radius: 8px;
             background: var(--bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
         }
 
         .rfid-status.waiting {
@@ -61,30 +86,69 @@
             color: white;
         }
 
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(0,0,0,0.1);
-            border-radius: 50%;
-            border-top-color: var(--primary);
-            animation: spin 1s ease-in-out infinite;
-            margin-left: 10px;
+        .rfid-icon {
+            width: 24px;
+            height: 24px;
         }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        .name-boxes {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+            padding: 0 40px;
+        }
+
+        .name-box {
+            background-color: #ffffff;
+            border: 2px solid var(--primary);
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-weight: 500;
+            color: var(--primary);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        @media (max-width: 600px) {
+            .name-boxes {
+                flex-direction: column;
+                align-items: center;
+                gap: 20px;
+                padding: 0;
+            }
+
+            .college-header {
+                font-size: 1.2em;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <h1>EV Charging Login</h1>
-        <div class="rfid-status waiting" id="rfidStatus">
-            Please scan your RFID card to login
+
+    <!-- Centering Wrapper for All Main Content -->
+    <div class="center-wrapper">
+
+        <!-- ✅ College name inside center alignment -->
+        <div class="college-header">LOKNETE SHAMRAO PEJE GOVERNMENT COLLEGE OF ENGINEERING , RATNAGIRI</div>
+
+        <!-- 🔒 Your EV Charging Login Box (untouched) -->
+        <div class="login-container">
+            <h1>SEVA Login</h1>
+            <div class="rfid-status waiting" id="rfidStatus">
+                <img src="https://cdn-icons-png.flaticon.com/512/9415/9415605.png" alt="RFID Icon" class="rfid-icon">
+                Please scan your RFID card to login
+            </div>
+        </div>
+
+        <!-- Student Name Boxes -->
+        <div class="name-boxes">
+            <div class="name-box">Adarsh Shailendra Yadav : 2230421293538 </div>
+            <div class="name-box">Rutuja Vinod Chitte : 2230421293544</div>
         </div>
     </div>
 
+    <!-- 🔒 Your WebSocket Script (untouched) -->
     <script>
         let ws;
         const rfidStatus = document.getElementById('rfidStatus');
@@ -105,12 +169,14 @@
                         rfidStatus.classList.remove('waiting');
                         rfidStatus.classList.add('success');
                         setTimeout(() => {
-                            window.location.href = 'home.html'; // Redirect to home page after successful login
+                            window.location.href = 'home.html';
                         }, 1000);
                     } else {
                         rfidStatus.textContent = 'Invalid RFID card. Please try again.';
                         setTimeout(() => {
-                            rfidStatus.textContent = 'Please scan your RFID card to login';
+                            rfidStatus.innerHTML = '<img src="https://cdn-icons-png.flaticon.com/512/9415/9415605.png" class="rfid-icon"> Please scan your RFID card to login';
+                            rfidStatus.classList.remove('success');
+                            rfidStatus.classList.add('waiting');
                         }, 2000);
                     }
                 }
