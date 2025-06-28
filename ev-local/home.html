@@ -266,11 +266,73 @@
             font-weight: bold;
             letter-spacing: 1px;
         }
+
+        .control-button {
+            padding: 16px 36px;         /* Bigger padding */
+            font-size: 1.1em;           /* Larger text */
+            border-radius: 30px;        /* Smoother round button */
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);  /* Elevated look */
+        }
+
+        #exitButton {
+            margin-left: -12px;         /* Slightly shift left */
+        }
+
+
+        /* 2. Vertically center spinner text inside button */
+        .spinner-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        padding: 0;
+    }
+
+
+/* 4. Responsive tweaks for 1024x600 */
+        @media screen and (max-width: 1024px) and (max-height: 600px) {
+            .dashboard {
+                padding: 6px;
+            }
+
+            .status-box h3 {
+                font-size: 0.65em;
+            }
+
+            .status-box .value {
+                font-size: 0.9em;
+            }
+
+            .control-button {
+                font-size: 0.85em;
+                padding: 10px 22px;
+            }
+
+    /* .spinner-btn {
+        width: 50px;
+        height: 50px;
+        font-size: 2em;
+    }
+
+    #powerUnits {
+        font-size: 2.2em;
+    }
+
+    .consumed-cost {
+        font-size: 1.5em;
+    }
+
+    .power-input-container h3 {
+        font-size: 1.2em;
+    } */
+}
+
     </style>
 </head>
 <body>
     <div class="dashboard">
-        <h1><i class="fas fa-charging-station"></i> EV Charging Dashboard <span style="font-size: 0.6em; color: var(--warning);">[FAST DEMO MODE]</span></h1>
+        <h1><i class="fas fa-charging-station"></i> SEVA Charging Dashboard <span style="font-size: 0.6em; color: var(--warning);">[FAST DEMO MODE]</span></h1>
 
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 6px; border-radius: 6px; margin-bottom: 8px; text-align: center; font-size: 0.7em;">
             <i class="fas fa-info-circle"></i> 

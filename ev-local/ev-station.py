@@ -61,6 +61,7 @@ class EVChargingState:
         self.is_charging = False
         self.current_power = 0
         self.current = 0
+        self.charge_level = 100
         try:
             state = self.update()
             print(state)
